@@ -34,7 +34,7 @@ runs:
         DASHBUILD_SUBTITLE: ${{ inputs.subtitle }}
         DASHBUILD_THEME: ${{ inputs.theme }}
       run: |
-        DASHBUILD_DIR="${RUNNER_TEMP}/dashbuild"
+        export DASHBUILD_DIR="${RUNNER_TEMP}/dashbuild"
         echo "DASHBUILD_DIR=${DASHBUILD_DIR}" >> "$GITHUB_ENV"
 
         # Copy the framework skeleton from the action's bundled files

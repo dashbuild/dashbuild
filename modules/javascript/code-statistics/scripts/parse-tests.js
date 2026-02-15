@@ -1,6 +1,7 @@
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
 import { join, dirname, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { execSync } from "node:child_process";
 import { mergeHistory } from "../../../../scripts/lib/merge-history.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -23,6 +24,14 @@ const testRunner = (process.env.TEST_RUNNER || "vitest").toLowerCase();
 const testResultsPath = process.env.TEST_RESULTS_PATH || "";
 const cacheFile = process.env.CACHE_FILE || "";
 const retentionDays = process.env.RETENTION_DAYS || "90";
+const enableTests =
+  (process.env.ENABLE_TESTS || "true").toLowerCase() !== "false";
+const enableCoverage =
+  (process.env.ENABLE_COVERAGE || "true").toLowerCase() !== "false";
+const sourcePatterns = (process.env.SOURCE_PATTERNS || "")
+  .split(",")
+  .map((p) => p.trim())
+  .filter(Boolean);
 
 // ─── LCOV parsing ───────────────────────────────────────────────────
 
@@ -86,27 +95,52 @@ function inferPackageName(lcovFilePath) {
   return null;
 }
 
-// ─── Count total source lines and files ─────────────────────────────
+// ─── Find source files ──────────────────────────────────────────────
 
-function countSourceLines(projectDir) {
+const DEFAULT_EXTENSIONS = ["ts", "tsx", "js", "jsx", "mjs", "cjs"];
+const DEFAULT_EXCLUDES = ["node_modules", "dist", ".next", "build"];
+
+function findSourceFiles(projectDir, patterns) {
   try {
-    const result = execSync(
-      `find "${projectDir}" -type f \\( -name "*.ts" -o -name "*.tsx" -o -name "*.js" -o -name "*.jsx" -o -name "*.mjs" -o -name "*.cjs" \\) -not -path "*/node_modules/*" -not -path "*/dist/*" -not -path "*/.next/*" -not -path "*/build/*" -exec cat {} + 2>/dev/null | wc -l`,
-      { encoding: "utf-8" },
-    ).trim();
-    return parseInt(result, 10) || 0;
+    let cmd;
+    if (patterns.length > 0) {
+      // Use bash globstar to expand user-provided patterns (unquoted so globs expand)
+      const globExpr = patterns.map((p) => `${projectDir}/${p}`).join(" ");
+      cmd = `bash -c 'shopt -s globstar nullglob; for f in ${globExpr}; do [ -f "$f" ] && echo "$f"; done'`;
+    } else {
+      // Default: find all JS/TS files, excluding common non-source directories
+      const nameArgs = DEFAULT_EXTENSIONS.map((ext) => `-name "*.${ext}"`).join(
+        " -o ",
+      );
+      const excludeArgs = DEFAULT_EXCLUDES.map(
+        (dir) => `-not -path "*/${dir}/*"`,
+      ).join(" ");
+      cmd = `find "${projectDir}" -type f \\( ${nameArgs} \\) ${excludeArgs} 2>/dev/null`;
+    }
+    const result = execSync(cmd, { encoding: "utf-8" }).trim();
+    return result ? result.split("\n").filter(Boolean) : [];
   } catch {
-    return 0;
+    return [];
   }
 }
 
-function countSourceFiles(projectDir) {
+function countLines(files) {
+  if (files.length === 0) return 0;
   try {
-    const result = execSync(
-      `find "${projectDir}" -type f \\( -name "*.ts" -o -name "*.tsx" -o -name "*.js" -o -name "*.jsx" -o -name "*.mjs" -o -name "*.cjs" \\) -not -path "*/node_modules/*" -not -path "*/dist/*" -not -path "*/.next/*" -not -path "*/build/*" 2>/dev/null | wc -l`,
-      { encoding: "utf-8" },
-    ).trim();
-    return parseInt(result, 10) || 0;
+    // Process in batches to avoid argument list too long
+    let total = 0;
+    const batchSize = 500;
+    for (let i = 0; i < files.length; i += batchSize) {
+      const batch = files.slice(i, i + batchSize);
+      const result = execSync(
+        `cat ${batch.map((f) => `"${f}"`).join(" ")} 2>/dev/null | wc -l`,
+        {
+          encoding: "utf-8",
+        },
+      ).trim();
+      total += parseInt(result, 10) || 0;
+    }
+    return total;
   } catch {
     return 0;
   }
@@ -114,25 +148,30 @@ function countSourceFiles(projectDir) {
 
 // ─── Find LCOV files ────────────────────────────────────────────────
 
-let lcovFiles;
-try {
-  const result = execSync(
-    `find "${coveragePath}" -type f \\( -name "lcov.info" -o -name "*.lcov" \\) 2>/dev/null || true`,
-    { encoding: "utf-8" },
-  ).trim();
-  lcovFiles = result ? result.split("\n").filter(Boolean) : [];
-} catch {
-  lcovFiles = [];
-}
+let lcovFiles = [];
 
-if (lcovFiles.length === 0) {
-  console.warn(
-    "::warning::No LCOV coverage files found. Coverage data will be empty.",
-  );
-}
+if (enableCoverage) {
+  try {
+    const result = execSync(
+      `find "${coveragePath}" -type f \\( -name "lcov.info" -o -name "*.lcov" \\) 2>/dev/null || true`,
+      { encoding: "utf-8" },
+    ).trim();
+    lcovFiles = result ? result.split("\n").filter(Boolean) : [];
+  } catch {
+    lcovFiles = [];
+  }
 
-console.log(`Found ${lcovFiles.length} LCOV file(s):`);
-lcovFiles.forEach((f) => console.log(`  - ${f}`));
+  if (lcovFiles.length === 0) {
+    console.warn(
+      "::warning::No LCOV coverage files found. Coverage data will be empty.",
+    );
+  }
+
+  console.log(`Found ${lcovFiles.length} LCOV file(s):`);
+  lcovFiles.forEach((f) => console.log(`  - ${f}`));
+} else {
+  console.log("Coverage collection is disabled.");
+}
 
 // ─── Parse coverage by package ──────────────────────────────────────
 
@@ -259,30 +298,35 @@ function parseCypress(data) {
   };
 }
 
-const testResultsFile = findTestResults();
 let testStats = null;
 
-if (testResultsFile) {
-  try {
-    const raw = JSON.parse(readFileSync(testResultsFile, "utf-8"));
-    console.log(
-      `Parsing test results from: ${testResultsFile} (${testRunner})`,
-    );
+if (enableTests) {
+  const testResultsFile = findTestResults();
 
-    if (testRunner === "cypress") {
-      testStats = parseCypress(raw);
-    } else {
-      testStats = parseVitestJest(raw);
+  if (testResultsFile) {
+    try {
+      const raw = JSON.parse(readFileSync(testResultsFile, "utf-8"));
+      console.log(
+        `Parsing test results from: ${testResultsFile} (${testRunner})`,
+      );
+
+      if (testRunner === "cypress") {
+        testStats = parseCypress(raw);
+      } else {
+        testStats = parseVitestJest(raw);
+      }
+    } catch (err) {
+      console.warn(
+        `::warning::Failed to parse test results from ${testResultsFile}: ${err.message}`,
+      );
     }
-  } catch (err) {
-    console.warn(
-      `::warning::Failed to parse test results from ${testResultsFile}: ${err.message}`,
+  } else {
+    console.log(
+      "No test results file found. Test statistics will not be included.",
     );
   }
 } else {
-  console.log(
-    "No test results file found. Test statistics will not be included.",
-  );
+  console.log("Test result collection is disabled.");
 }
 
 // ─── Build today's metrics ──────────────────────────────────────────
@@ -292,19 +336,42 @@ for (const [, pkg] of packageMap) {
   allFiles.push(...pkg.files);
 }
 
-const coverageStats = computeCoverageStats(allFiles);
-const totalLines = countSourceLines(coveragePath);
-const totalFiles = countSourceFiles(coveragePath);
+const coverageStats = enableCoverage ? computeCoverageStats(allFiles) : null;
+const allSourceFiles = findSourceFiles(coveragePath, sourcePatterns);
+const totalLines = countLines(allSourceFiles);
+const totalFiles = allSourceFiles.length;
 const packageCount = packageMap.size;
+
+// Classify files as source vs test
+const testFilePatterns = /(\.test\.|_test\.|\.(spec)\.|__tests__)/;
+const srcFileCount = allSourceFiles.filter(
+  (f) => !testFilePatterns.test(f),
+).length;
+const testFileCount = allSourceFiles.filter((f) =>
+  testFilePatterns.test(f),
+).length;
 
 const todaysMetrics = {
   total_lines: totalLines,
   total_files: totalFiles,
+  source_files: srcFileCount,
+  test_files: testFileCount,
   packages: packageCount,
-  line_coverage: parseFloat(coverageStats.lines.pct.toFixed(2)),
-  function_coverage: parseFloat(coverageStats.functions.pct.toFixed(2)),
-  branch_coverage: parseFloat(coverageStats.branches.pct.toFixed(2)),
+  avg_lines_per_file:
+    totalFiles > 0 ? parseFloat((totalLines / totalFiles).toFixed(1)) : 0,
 };
+
+if (enableCoverage && coverageStats) {
+  todaysMetrics.line_coverage = parseFloat(coverageStats.lines.pct.toFixed(2));
+  todaysMetrics.function_coverage = parseFloat(
+    coverageStats.functions.pct.toFixed(2),
+  );
+  todaysMetrics.branch_coverage = parseFloat(
+    coverageStats.branches.pct.toFixed(2),
+  );
+  todaysMetrics.uncovered_lines =
+    coverageStats.lines.found - coverageStats.lines.hit;
+}
 
 if (testStats) {
   todaysMetrics.test_suites = testStats.suites;
@@ -312,22 +379,46 @@ if (testStats) {
   todaysMetrics.tests_passed = testStats.passed;
   todaysMetrics.tests_failed = testStats.failed;
   todaysMetrics.tests_skipped = testStats.skipped;
+  todaysMetrics.test_pass_rate =
+    testStats.tests > 0
+      ? parseFloat(((testStats.passed / testStats.tests) * 100).toFixed(1))
+      : 0;
+  todaysMetrics.test_to_code_ratio =
+    totalLines > 0
+      ? parseFloat(((testStats.tests / totalLines) * 1000).toFixed(1))
+      : 0;
 }
 
 // ─── Merge into history and write output ────────────────────────────
 
-const allAreas = [
+const codebaseAreas = [
   "total_lines",
   "total_files",
+  "source_files",
+  "test_files",
   "packages",
+  "avg_lines_per_file",
+];
+const testAreas = [
   "test_suites",
   "tests",
   "tests_passed",
   "tests_failed",
   "tests_skipped",
+  "test_pass_rate",
+  "test_to_code_ratio",
+];
+const coverageAreas = [
   "line_coverage",
   "function_coverage",
   "branch_coverage",
+  "uncovered_lines",
+];
+
+const allAreas = [
+  ...codebaseAreas,
+  ...(enableTests ? testAreas : []),
+  ...(enableCoverage ? coverageAreas : []),
 ];
 
 const outputPath = join(dashbuildDir, "src", "data", `${slug}.json`);
@@ -344,7 +435,9 @@ console.log(`\nData written to ${outputPath}`);
 console.log(`  Total lines: ${totalLines}`);
 console.log(`  Total files: ${totalFiles}`);
 console.log(`  Packages: ${packageCount}`);
-console.log(`  Line coverage: ${coverageStats.lines.pct.toFixed(1)}%`);
+if (enableCoverage && coverageStats) {
+  console.log(`  Line coverage: ${coverageStats.lines.pct.toFixed(1)}%`);
+}
 if (testStats) {
   console.log(`  Tests: ${testStats.passed}/${testStats.tests} passed`);
 }

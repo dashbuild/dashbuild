@@ -22,6 +22,26 @@ import {
 ```js
 const enabledAreas = new Set(data.config.areas);
 
+const testAreaKeys = [
+  "tests",
+  "test_suites",
+  "tests_passed",
+  "tests_failed",
+  "tests_skipped",
+  "test_pass_rate",
+  "test_to_code_ratio",
+];
+const coverageAreaKeys = [
+  "line_coverage",
+  "function_coverage",
+  "branch_coverage",
+  "uncovered_lines",
+];
+const hasTests = testAreaKeys.some((k) => enabledAreas.has(k));
+const hasCoverage = coverageAreaKeys.some((k) => enabledAreas.has(k));
+
+let sectionIndex = 0;
+
 const metricHistory = data.history.map((entry) => ({
   ...entry,
   date: new Date(entry.date),
@@ -38,7 +58,7 @@ function statsChart(metricKey, opts) {
 }
 ```
 
-<div class="dash-section" style="--si:0">
+<div class="dash-section" style="${`--si:${sectionIndex++}`}">
 
 ### Codebase
 
@@ -84,160 +104,166 @@ for (const metric of codeMetrics) {
 </div>
 </div>
 
-<div class="dash-section" style="--si:1">
-
-### Testing
-
 ```js
-const testCards = [];
+if (hasTests) {
+  const testCards = [];
 
-const testMetrics = [
-  { key: "test_pass_rate", label: "Pass Rate", suffix: "%", highlight: true },
-  { key: "tests_failed", label: "Failed", inverse: true, highlight: true },
-  { key: "test_to_code_ratio", label: "Tests / 1k Lines" },
-];
+  const testMetrics = [
+    { key: "test_pass_rate", label: "Pass Rate", suffix: "%", highlight: true },
+    { key: "tests_failed", label: "Failed", inverse: true, highlight: true },
+    { key: "test_to_code_ratio", label: "Tests / 1k Lines" },
+  ];
 
-for (const metric of testMetrics) {
-  const value = latestMetrics[metric.key];
-  if (value != null) {
-    const isFailed = metric.key === "tests_failed";
-    const colorClass = metric.highlight
-      ? isFailed && value > 0
-        ? "red"
-        : "purple"
-      : "";
-    const useHighlight = metric.highlight && !(isFailed && value > 0);
-    const trend = statsTrend(metric.key, { inverse: metric.inverse });
-    const trendHtml = trend.text
-      ? html`<span class="muted trend-container" style="font-size: 0.75rem;">
-          ${makeArrowNode(trend)}${trend.text}${metric.suffix || ""} from
-          previous
-        </span>`
-      : "";
-    const inner = html`<div class="card summary-card">
-      <h2>${metric.label}</h2>
-      <span class="big ${colorClass}"
-        >${formatMetric(value, metric.suffix)}</span
-      >
-      ${trendHtml}
-    </div>`;
-    testCards.push(
-      useHighlight
-        ? html`<div class="gradient-card-purple">${inner}</div>`
-        : inner,
-    );
-  }
-}
-```
-
-<div class="grid grid-cols-3 skel-cards-3">
-  ${testCards}
-</div>
-</div>
-
-<div class="dash-section" style="--si:2">
-
-### Test Results
-
-```js
-const resultCards = [];
-
-const resultMetrics = [
-  { key: "tests", label: "Tests" },
-  { key: "tests_passed", label: "Passed", color: "teal" },
-  { key: "test_suites", label: "Test Suites" },
-  { key: "tests_failed", label: "Failed", inverse: true },
-  { key: "tests_skipped", label: "Skipped", neutral: true },
-];
-
-for (const metric of resultMetrics) {
-  const value = latestMetrics[metric.key];
-  if (value != null) {
-    const isFailed = metric.key === "tests_failed";
-    const colorClass =
-      isFailed && value > 0 ? "red" : metric.color || "muted-value";
-    const trend = statsTrend(metric.key, {
-      inverse: metric.inverse,
-      neutral: metric.neutral,
-    });
-    const trendHtml = trend.text
-      ? html`<span class="muted trend-container" style="font-size: 0.75rem;">
-          ${makeArrowNode(trend)}${trend.text} from previous
-        </span>`
-      : "";
-    resultCards.push(
-      html`<div class="card summary-card">
+  for (const metric of testMetrics) {
+    const value = latestMetrics[metric.key];
+    if (value != null) {
+      const isFailed = metric.key === "tests_failed";
+      const colorClass = metric.highlight
+        ? isFailed && value > 0
+          ? "red"
+          : "purple"
+        : "";
+      const useHighlight = metric.highlight && !(isFailed && value > 0);
+      const trend = statsTrend(metric.key, { inverse: metric.inverse });
+      const trendHtml = trend.text
+        ? html`<span class="muted trend-container" style="font-size: 0.75rem;">
+            ${makeArrowNode(trend)}${trend.text}${metric.suffix || ""} from
+            previous
+          </span>`
+        : "";
+      const inner = html`<div class="card summary-card">
         <h2>${metric.label}</h2>
-        <span class="big ${colorClass}">${formatMetric(value)}</span>
+        <span class="big ${colorClass}"
+          >${formatMetric(value, metric.suffix)}</span
+        >
         ${trendHtml}
+      </div>`;
+      testCards.push(
+        useHighlight
+          ? html`<div class="gradient-card-purple">${inner}</div>`
+          : inner,
+      );
+    }
+  }
+
+  if (testCards.length > 0) {
+    display(
+      html`<div class="dash-section" style="${`--si:${sectionIndex++}`}">
+        <h3>Testing</h3>
+        <div class="grid grid-cols-3 skel-cards-3">${testCards}</div>
       </div>`,
     );
   }
 }
 ```
 
-<div class="grid grid-cols-4 skel-cards-4">
-  ${resultCards}
-</div>
-</div>
-
-<div class="dash-section" style="--si:3">
-
-### Coverage
-
 ```js
-const coverageCards = [];
+if (hasTests) {
+  const resultCards = [];
 
-const coverageMetrics = [
-  {
-    key: "line_coverage",
-    label: "Line Coverage",
-    suffix: "%",
-    highlight: true,
-  },
-  {
-    key: "branch_coverage",
-    label: "Branch Coverage",
-    suffix: "%",
-    highlight: true,
-  },
-  { key: "function_coverage", label: "Function Coverage", suffix: "%" },
-  { key: "uncovered_lines", label: "Uncovered Lines" },
-];
+  const resultMetrics = [
+    { key: "tests", label: "Tests" },
+    { key: "tests_passed", label: "Passed", color: "teal" },
+    { key: "test_suites", label: "Test Suites" },
+    { key: "tests_failed", label: "Failed", inverse: true },
+    { key: "tests_skipped", label: "Skipped", neutral: true },
+  ];
 
-for (const metric of coverageMetrics) {
-  const value = latestMetrics[metric.key];
-  if (value != null) {
-    const isWarning = metric.key === "uncovered_lines";
-    const trend = statsTrend(metric.key, { inverse: isWarning });
-    const trendHtml = trend.text
-      ? html`<span class="muted trend-container" style="font-size: 0.75rem;">
-          ${makeArrowNode(trend)}${trend.text}${metric.suffix || ""} from
-          previous
-        </span>`
-      : "";
-    const inner = html`<div class="card summary-card">
-      <h2>${metric.label}</h2>
-      <span class="big ${metric.highlight ? "purple" : ""}"
-        >${formatMetric(value, metric.suffix)}</span
-      >
-      ${trendHtml}
-    </div>`;
-    coverageCards.push(
-      metric.highlight
-        ? html`<div class="gradient-card-purple">${inner}</div>`
-        : inner,
+  for (const metric of resultMetrics) {
+    const value = latestMetrics[metric.key];
+    if (value != null) {
+      const isFailed = metric.key === "tests_failed";
+      const colorClass =
+        isFailed && value > 0 ? "red" : metric.color || "muted-value";
+      const trend = statsTrend(metric.key, {
+        inverse: metric.inverse,
+        neutral: metric.neutral,
+      });
+      const trendHtml = trend.text
+        ? html`<span class="muted trend-container" style="font-size: 0.75rem;">
+            ${makeArrowNode(trend)}${trend.text} from previous
+          </span>`
+        : "";
+      resultCards.push(
+        html`<div class="card summary-card">
+          <h2>${metric.label}</h2>
+          <span class="big ${colorClass}">${formatMetric(value)}</span>
+          ${trendHtml}
+        </div>`,
+      );
+    }
+  }
+
+  if (resultCards.length > 0) {
+    display(
+      html`<div class="dash-section" style="${`--si:${sectionIndex++}`}">
+        <h3>Test Results</h3>
+        <div class="grid grid-cols-4 skel-cards-4">${resultCards}</div>
+      </div>`,
     );
   }
 }
 ```
 
-<div class="grid grid-cols-4 skel-cards-4">
-  ${coverageCards}
-</div>
-</div>
+```js
+if (hasCoverage) {
+  const coverageCards = [];
 
-<div class="dash-section" style="--si:4">
+  const coverageMetrics = [
+    {
+      key: "line_coverage",
+      label: "Line Coverage",
+      suffix: "%",
+      highlight: true,
+    },
+    {
+      key: "branch_coverage",
+      label: "Branch Coverage",
+      suffix: "%",
+      highlight: true,
+    },
+    { key: "function_coverage", label: "Function Coverage", suffix: "%" },
+    { key: "uncovered_lines", label: "Uncovered Lines" },
+  ];
+
+  for (const metric of coverageMetrics) {
+    const value = latestMetrics[metric.key];
+    if (value != null) {
+      const isWarning = metric.key === "uncovered_lines";
+      const trend = statsTrend(metric.key, { inverse: isWarning });
+      const trendHtml = trend.text
+        ? html`<span class="muted trend-container" style="font-size: 0.75rem;">
+            ${makeArrowNode(trend)}${trend.text}${metric.suffix || ""} from
+            previous
+          </span>`
+        : "";
+      const inner = html`<div class="card summary-card">
+        <h2>${metric.label}</h2>
+        <span class="big ${metric.highlight ? "purple" : ""}"
+          >${formatMetric(value, metric.suffix)}</span
+        >
+        ${trendHtml}
+      </div>`;
+      coverageCards.push(
+        metric.highlight
+          ? html`<div class="gradient-card-purple">${inner}</div>`
+          : inner,
+      );
+    }
+  }
+
+  if (coverageCards.length > 0) {
+    display(
+      html`<div class="dash-section" style="${`--si:${sectionIndex++}`}">
+        <h3>Coverage</h3>
+        <div class="grid grid-cols-4 skel-cards-4">${coverageCards}</div>
+      </div>`,
+    );
+  }
+}
+```
+
+<div class="dash-section" style="${`--si:${sectionIndex++}`}">
 
 ## Trends
 

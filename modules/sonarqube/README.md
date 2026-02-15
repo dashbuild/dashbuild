@@ -26,13 +26,14 @@ This uses all defaults: connects to SonarCloud, displays the default metric area
 
 | Input            | Required | Default                 | Description                                                                                   |
 | ---------------- | -------- | ----------------------- | --------------------------------------------------------------------------------------------- |
-| `token`          | **Yes**  | —                       | SonarQube/SonarCloud API token                                                                |
-| `project-key`    | **Yes**  | —                       | SonarQube project key (e.g. `my-org_my-project`)                                              |
+| `token`          | No\*     | —                       | SonarQube/SonarCloud API token. Required unless `data-file` is set.                           |
+| `project-key`    | No\*     | —                       | SonarQube project key (e.g. `my-org_my-project`). Required unless `data-file` is set.         |
 | `host-url`       | No       | `https://sonarcloud.io` | SonarQube server URL                                                                          |
 | `metrics`        | No       | _(see below)_           | Comma-separated metric keys to fetch from the API                                             |
 | `areas`          | No       | _(see below)_           | Comma-separated metric areas to display on the report                                         |
 | `cache-key`      | No       | `""`                    | GitHub Actions cache key for historical data. **Set this to enable data-over-time tracking.** |
 | `retention-days` | No       | `90`                    | Number of days of history to keep. Set to `0` to keep all data.                               |
+| `data-file`      | No       | `""`                    | Path to a pre-built JSON data file. Skips the API fetch. For dev/demo/self-test use.          |
 
 ### `metrics` (API fetch)
 

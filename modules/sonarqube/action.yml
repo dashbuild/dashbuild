@@ -3,15 +3,17 @@ description: "Fetch SonarQube/SonarCloud metrics and generate a report page for 
 
 inputs:
   token:
-    description: "SonarQube/SonarCloud API token"
-    required: true
+    description: "SonarQube/SonarCloud API token. Required unless data-file is set."
+    required: false
+    default: ""
   host-url:
     description: "SonarQube server URL"
     required: false
     default: "https://sonarcloud.io"
   project-key:
-    description: "SonarQube project key"
-    required: true
+    description: "SonarQube project key. Required unless data-file is set."
+    required: false
+    default: ""
   metrics:
     description: "Comma-separated list of metric keys to fetch from the API"
     required: false
@@ -28,18 +30,33 @@ inputs:
     description: "Number of days of historical data to keep. Entries older than this are pruned before caching. 0 = keep all. Default: 90"
     required: false
     default: "90"
+  data-file:
+    description: "Path to a pre-built JSON data file. When set, the API fetch is skipped and this file is used directly. Intended for development, demos, and CI self-testing where real SonarQube credentials are unavailable."
+    required: false
+    default: ""
 
 runs:
   using: "composite"
   steps:
+    - name: Use pre-built data file
+      if: inputs.data-file != ''
+      shell: bash
+      run: |
+        SLUG=$(node -e "console.log(JSON.parse(require('fs').readFileSync('${{ github.action_path }}/module.json','utf-8')).slug)")
+        TARGET="${DASHBUILD_DIR}/src/data/${SLUG}.json"
+        mkdir -p "$(dirname "${TARGET}")"
+        cp "${{ inputs.data-file }}" "${TARGET}"
+        echo "::notice::Using pre-built data file: ${{ inputs.data-file }}"
+
     - name: Restore historical data from cache
-      if: inputs.cache-key != ''
+      if: inputs.data-file == '' && inputs.cache-key != ''
       uses: actions/cache/restore@v4
       with:
         path: .dashbuild-sonarqube-cache
         key: ${{ inputs.cache-key }}
 
     - name: Fetch SonarQube metrics
+      if: inputs.data-file == ''
       shell: bash
       env:
         SONAR_TOKEN: ${{ inputs.token }}
@@ -53,21 +70,16 @@ runs:
         bash "${{ github.action_path }}/scripts/fetch-sonarqube.sh"
 
     - name: Save historical data to cache
-      if: inputs.cache-key != ''
+      if: inputs.data-file == '' && inputs.cache-key != ''
       uses: actions/cache/save@v4
       with:
         path: .dashbuild-sonarqube-cache
         key: ${{ inputs.cache-key }}-${{ github.run_id }}
 
     - name: Resolve Dashbuild root
-      shell: bash
-      run: |
-        _DIR="${{ github.action_path }}"
-        while [ ! -d "${_DIR}/scripts/lib" ]; do
-          _DIR="$(dirname "${_DIR}")"
-          [ "${_DIR}" = "/" ] && echo "::error::Cannot find Dashbuild root" && exit 1
-        done
-        echo "DASHBUILD_ROOT=${_DIR}" >> "$GITHUB_ENV"
+      uses: ./actions/resolve-dashbuild-root
+      with:
+        start-dir: ${{ github.action_path }}
 
     - name: Generate report page
       shell: bash

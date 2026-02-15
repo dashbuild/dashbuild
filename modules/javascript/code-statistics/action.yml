@@ -26,6 +26,18 @@ inputs:
     description: "Number of days of historical data to keep. Entries older than this are pruned before caching. 0 = keep all. Default: 90"
     required: false
     default: "90"
+  enable-tests:
+    description: "Whether to parse and display test results. Set to 'false' to disable the Testing and Test Results sections."
+    required: false
+    default: false
+  enable-coverage:
+    description: "Whether to parse and display code coverage data. Set to 'false' to disable the Coverage section."
+    required: false
+    default: false
+  source-patterns:
+    description: "Comma-separated glob patterns for source files to include when counting lines and files. Default scans all JS/TS files excluding node_modules, dist, .next, and build directories."
+    required: false
+    default: ""
 
 runs:
   using: "composite"
@@ -46,6 +58,9 @@ runs:
         TEST_RESULTS_PATH: ${{ inputs.test-results-path }}
         CACHE_FILE: ${{ inputs.cache-key != '' && '.dashbuild-js-code-stats-cache/js-code-stats.json' || '' }}
         RETENTION_DAYS: ${{ inputs.retention-days }}
+        ENABLE_TESTS: ${{ inputs.enable-tests }}
+        ENABLE_COVERAGE: ${{ inputs.enable-coverage }}
+        SOURCE_PATTERNS: ${{ inputs.source-patterns }}
       run: |
         node "${{ github.action_path }}/scripts/parse-tests.js"
 
@@ -57,14 +72,9 @@ runs:
         key: ${{ inputs.cache-key }}-${{ github.run_id }}
 
     - name: Resolve Dashbuild root
-      shell: bash
-      run: |
-        _DIR="${{ github.action_path }}"
-        while [ ! -d "${_DIR}/scripts/lib" ]; do
-          _DIR="$(dirname "${_DIR}")"
-          [ "${_DIR}" = "/" ] && echo "::error::Cannot find Dashbuild root" && exit 1
-        done
-        echo "DASHBUILD_ROOT=${_DIR}" >> "$GITHUB_ENV"
+      uses: ./actions/resolve-dashbuild-root
+      with:
+        start-dir: ${{ github.action_path }}
 
     - name: Generate report page
       shell: bash

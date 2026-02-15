@@ -29,6 +29,9 @@ Track comprehensive code statistics — line counts, file counts, packages, test
 | `test-results-path` | No       | _(auto-detect)_ | Path to the test runner's JSON output. Auto-detected from common locations. |
 | `cache-key`         | No       | _(empty)_       | GitHub Actions cache key for historical data. Enables trend tracking.       |
 | `retention-days`    | No       | `90`            | Days of historical data to keep. 0 = keep all.                              |
+| `enable-tests`      | No       | `false`         | Set to `true` to enable test result parsing and the Testing sections.       |
+| `enable-coverage`   | No       | `false`         | Set to `true` to enable coverage parsing and the Coverage section.          |
+| `source-patterns`   | No       | _(all JS/TS)_   | Comma-separated glob patterns for source files to count. Scopes statistics. |
 
 ### Test Runner Output
 
@@ -78,6 +81,17 @@ If no `package.json` is found, all files are grouped under a single `(root)` pac
 ```
 
 If no test results file is found, the dashboard shows coverage data only.
+
+### Codebase stats only (no tests, no coverage)
+
+```yaml
+- uses: your-org/dashbuild/modules/javascript/code-statistics@main
+  with:
+    enable-tests: "false"
+    enable-coverage: "false"
+```
+
+Shows only line counts, file counts, and package counts. The Testing, Test Results, and Coverage sections are completely hidden.
 
 ## Local Development
 

@@ -25,5 +25,5 @@ modules/code-tasks/fixtures/code-tasks.json
 
 # Test project artifacts
 tests/javascript/node_modules/
-tests/javascript/coverage/
-tests/javascript/test-results.json
+tests/javascript/coverage/*
+!tests/javascript/coverage/lcov.info

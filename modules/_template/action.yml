@@ -11,14 +11,9 @@ runs:
   using: "composite"
   steps:
     - name: Resolve Dashbuild root
-      shell: bash
-      run: |
-        _DIR="${{ github.action_path }}"
-        while [ ! -d "${_DIR}/scripts/lib" ]; do
-          _DIR="$(dirname "${_DIR}")"
-          [ "${_DIR}" = "/" ] && echo "::error::Cannot find Dashbuild root" && exit 1
-        done
-        echo "DASHBUILD_ROOT=${_DIR}" >> "$GITHUB_ENV"
+      uses: ./actions/resolve-dashbuild-root
+      with:
+        start-dir: ${{ github.action_path }}
 
     - name: Generate report page
       shell: bash
