@@ -1,0 +1,41 @@
+@import url("observablehq:default.css");
+@import url("observablehq:theme-wide.css");
+
+/*
+ * __MODULE_TITLE__ module theme
+ *
+ * This is a standalone stylesheet loaded via per-page style front matter.
+ * Customize the colors and fonts below for your module's branding.
+ */
+
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap");
+
+:root {
+  --theme-foreground: #e1e6f3;
+  --theme-foreground-muted: #8b92a8;
+  --theme-foreground-faint: #555c72;
+  --theme-foreground-fainter: #3d4459;
+  --theme-foreground-faintest: #2f3548;
+  --theme-foreground-focus: #6366f1;
+  --theme-background: #1a1a2e;
+  --theme-background-alt: #25253e;
+
+  --theme-font: "Inter", system-ui, sans-serif;
+  --theme-font-alt: "Inter", system-ui, sans-serif;
+
+  --__MODULE_NAME__-primary: #6366f1;
+  --__MODULE_NAME__-primary-dark: #4338ca;
+
+  /* Neutral trend aliases (used by shared trendChart component) */
+  --dash-trend-up: #6aab7d;
+  --dash-trend-down: #ab6a75;
+  --dash-trend-flat: var(--theme-foreground-muted);
+}
+
+body {
+  font-family: var(--theme-font);
+}
+
+.card {
+  border-top: 3px solid var(--__MODULE_NAME__-primary);
+}

@@ -1,0 +1,74 @@
+name: "Dashbuild Setup"
+description: "Bootstrap the Observable Framework project for Dashbuild report generation"
+
+inputs:
+  node-version:
+    description: "Node.js version to use"
+    required: false
+    default: "20"
+  title:
+    description: "Title for the generated report site"
+    required: false
+    default: "Dashbuild Report"
+  subtitle:
+    description: "Subtitle displayed next to DASHBUILD on the overview page"
+    required: false
+    default: "Development Report"
+  theme:
+    description: "Observable Framework theme (e.g. dashboard, light, dark)"
+    required: false
+    default: "dashboard"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ inputs.node-version }}
+
+    - name: Create Dashbuild workspace
+      shell: bash
+      env:
+        DASHBUILD_TITLE: ${{ inputs.title }}
+        DASHBUILD_SUBTITLE: ${{ inputs.subtitle }}
+        DASHBUILD_THEME: ${{ inputs.theme }}
+      run: |
+        DASHBUILD_DIR="${RUNNER_TEMP}/dashbuild"
+        echo "DASHBUILD_DIR=${DASHBUILD_DIR}" >> "$GITHUB_ENV"
+
+        # Copy the framework skeleton from the action's bundled files
+        cp -r "${{ github.action_path }}/../framework" "${DASHBUILD_DIR}"
+
+        # Store config inputs for compile to use later (node ensures safe JSON)
+        node -e "
+          const fs = require('fs');
+          const config = {
+            title: process.env.DASHBUILD_TITLE,
+            subtitle: process.env.DASHBUILD_SUBTITLE,
+            theme: process.env.DASHBUILD_THEME,
+          };
+          fs.writeFileSync(
+            process.env.DASHBUILD_DIR + '/dashbuild-config.json',
+            JSON.stringify(config, null, 2)
+          );
+        "
+
+        # Initialize the module registry
+        echo "[]" > "${DASHBUILD_DIR}/modules.json"
+
+        # Ensure data and components directories exist
+        mkdir -p "${DASHBUILD_DIR}/src/data"
+        mkdir -p "${DASHBUILD_DIR}/src/components"
+
+        # Ensure module API directory exists for inter-module communication
+        mkdir -p "${DASHBUILD_DIR}/module-api"
+
+        echo "::notice::Dashbuild workspace created at ${DASHBUILD_DIR}"
+
+    - name: Install dependencies
+      shell: bash
+      run: |
+        cd "${DASHBUILD_DIR}"
+        npm install
+        echo "::notice::Observable Framework dependencies installed"

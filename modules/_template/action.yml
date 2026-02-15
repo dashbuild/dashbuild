@@ -1,0 +1,33 @@
+name: "Dashbuild __MODULE_TITLE__"
+description: "TODO: describe what this module does"
+
+inputs:
+  example-input:
+    description: "An example input parameter"
+    required: false
+    default: ""
+
+runs:
+  using: "composite"
+  steps:
+    - name: Resolve Dashbuild root
+      shell: bash
+      run: |
+        _DIR="${{ github.action_path }}"
+        while [ ! -d "${_DIR}/scripts/lib" ]; do
+          _DIR="$(dirname "${_DIR}")"
+          [ "${_DIR}" = "/" ] && echo "::error::Cannot find Dashbuild root" && exit 1
+        done
+        echo "DASHBUILD_ROOT=${_DIR}" >> "$GITHUB_ENV"
+
+    - name: Generate report page
+      shell: bash
+      run: node "${DASHBUILD_ROOT}/scripts/lib/generate-page.js" "${{ github.action_path }}"
+
+    - name: Generate overview
+      shell: bash
+      run: node "${{ github.action_path }}/scripts/generate-overview.js"
+
+    - name: Register module
+      shell: bash
+      run: node "${DASHBUILD_ROOT}/scripts/lib/register-module.js" "${{ github.action_path }}"

@@ -1,0 +1,29 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+
+# Observable Framework cache
+.observablehq/cache/
+
+# Local development environment
+.dev/
+.dev-node_modules/
+.dev-config.yml
+
+# Publish staging
+.publish-staging/
+
+# Logs
+*.log
+
+# don't track potentially real data
+modules/sonarqube/fixtures/sonarqube.json
+modules/javascript/code-statistics/fixtures/js-code-stats.json
+modules/code-tasks/fixtures/code-tasks.json
+
+# Test project artifacts
+tests/javascript/node_modules/
+tests/javascript/coverage/
+tests/javascript/test-results.json

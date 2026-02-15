@@ -1,0 +1,31 @@
+# Dashbuild dev configuration
+# Copy this file to .dev-config.yml to customize your local dev environment.
+# .dev-config.yml is gitignored.
+
+sonarqube:
+  # Metric areas to display as trend charts.
+  # Default: coverage, duplicated_lines_density, code_smells, bugs, vulnerabilities,
+  #          reliability_rating, security_rating, sqale_rating
+  # Opt-in extras: ncloc, security_hotspots
+  areas:
+    - coverage
+    - duplicated_lines_density
+    - code_smells
+    - bugs
+    - vulnerabilities
+    - reliability_rating
+    - security_rating
+    - sqale_rating
+    # - ncloc
+    # - security_hotspots
+
+# js-code-stats:
+#   test-runner: vitest
+
+# code-tasks:
+#   tags:
+#     - TODO
+#     - FIXME
+#     - HACK
+#     - REVIEW
+#     - NOTE

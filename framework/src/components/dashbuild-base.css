@@ -1,0 +1,83 @@
+/*
+ * Dashbuild shared base styles
+ *
+ * Common animation, skeleton sizing, and trend display styles
+ * used by all module themes. Import this at the end of each
+ * module's theme.css to avoid duplicating these rules.
+ */
+
+/* ══════════════════════════════════════════════════════════════════════
+ * STAGGERED FADE-IN ANIMATION
+ *
+ * Each .dash-section fades in sequentially on page load.
+ * Adjust --stagger-delay to change the gap between sections.
+ * Adjust animation duration to change how fast each section appears.
+ * ════════════════════════════════════════════════════════════════════ */
+
+:root {
+  --stagger-delay: 60ms; /* ← delay between each section          */
+}
+
+@keyframes dashFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.dash-section {
+  opacity: 0;
+  animation: dashFadeIn 300ms ease-out forwards;
+  animation-delay: calc(var(--si, 0) * var(--stagger-delay));
+}
+
+/* ── Skeleton sizing — reserves space before JS renders ───────────── */
+
+.skel-cards-3 {
+  min-height: 90px;
+}
+
+.skel-cards-4 {
+  min-height: 90px;
+}
+
+.skel-charts-2 {
+  min-height: 290px;
+}
+
+.skel-summary {
+  min-height: 20px;
+}
+
+.skel-toggles {
+  min-height: 36px;
+}
+
+.skel-tasks {
+  min-height: 300px;
+}
+
+/* ── Trend arrows ──────────────────────────────────────────────────── */
+
+.trend-container {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.8rem;
+}
+
+.trend-arrow {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.trend-arrow svg {
+  width: 14px;
+  height: 14px;
+}

@@ -1,0 +1,8 @@
+{
+  "example": "42",
+  "items": [
+    { "name": "Item A", "value": 10 },
+    { "name": "Item B", "value": 25 },
+    { "name": "Item C", "value": 7 }
+  ]
+}

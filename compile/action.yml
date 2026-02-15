@@ -1,0 +1,49 @@
+name: "Dashbuild Compile"
+description: "Assemble registered modules and build the final Observable Framework static site"
+
+inputs:
+  deploy:
+    description: "Whether to deploy to GitHub Pages"
+    required: false
+    default: "false"
+  artifact-name:
+    description: "Name for the uploaded artifact"
+    required: false
+    default: "dashbuild-report"
+  show-overview:
+    description: "Whether to show the module overview section on the dashboard index page"
+    required: false
+    default: "true"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Generate config and index
+      shell: bash
+      env:
+        DASHBUILD_SHOW_OVERVIEW: ${{ inputs.show-overview }}
+      run: |
+        node "${{ github.action_path }}/scripts/assemble-site.js"
+
+    - name: Build site
+      shell: bash
+      run: |
+        cd "${DASHBUILD_DIR}"
+        npx observable build
+        echo "::notice::Dashbuild site built successfully"
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ inputs.artifact-name }}
+        path: ${{ env.DASHBUILD_DIR }}/dist
+
+    - name: Upload Pages artifact
+      if: ${{ inputs.deploy == 'true' }}
+      uses: actions/upload-pages-artifact@v3
+      with:
+        path: ${{ env.DASHBUILD_DIR }}/dist
+
+    - name: Deploy to GitHub Pages
+      if: ${{ inputs.deploy == 'true' }}
+      uses: actions/deploy-pages@v4

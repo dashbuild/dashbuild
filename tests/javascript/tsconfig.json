@@ -1,0 +1,18 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "outDir": "dist",
+    "rootDir": ".",
+    "paths": {
+      "@test-project/core": ["./packages/core/src/index.ts"],
+      "@test-project/api": ["./packages/api/src/index.ts"],
+      "@test-project/ui": ["./packages/ui/src/index.ts"]
+    }
+  },
+  "include": ["packages/*/src/**/*.ts", "packages/*/__tests__/**/*.ts"]
+}

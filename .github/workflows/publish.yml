@@ -1,0 +1,53 @@
+name: Publish Actions
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag to create on target repos (e.g. v1.0.0)"
+        required: false
+      repo:
+        description: "Publish only a specific repo: setup, compile, or modules (leave empty for all)"
+        required: false
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout monorepo
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Determine tag
+        id: tag
+        run: |
+          if [ -n "${{ github.event.inputs.tag }}" ]; then
+            echo "tag=${{ github.event.inputs.tag }}" >> "$GITHUB_OUTPUT"
+          elif [[ "${{ github.ref }}" == refs/tags/* ]]; then
+            echo "tag=${GITHUB_REF#refs/tags/}" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Publish actions
+        env:
+          GITHUB_TOKEN: ${{ secrets.PUBLISH_TOKEN }}
+        run: |
+          ARGS=""
+          if [ -n "${{ steps.tag.outputs.tag }}" ]; then
+            ARGS="$ARGS --tag ${{ steps.tag.outputs.tag }}"
+          fi
+          if [ -n "${{ github.event.inputs.repo }}" ]; then
+            ARGS="$ARGS --repo ${{ github.event.inputs.repo }}"
+          fi
+          node scripts/publish.js $ARGS
