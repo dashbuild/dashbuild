@@ -1,6 +1,7 @@
-import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
-import { join, dirname, resolve } from "node:path";
+import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
+import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
+import { mergeHistory } from "../../../scripts/lib/merge-history.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const moduleDir = join(__dirname, "..");
@@ -39,7 +40,10 @@ const areas = areasStr
   .split(",")
   .map((a) => a.trim())
   .filter(Boolean);
-const lookbackDays = parseInt(process.env.GITHUB_STATS_LOOKBACK_DAYS || "90", 10);
+const lookbackDays = parseInt(
+  process.env.GITHUB_STATS_LOOKBACK_DAYS || "90",
+  10,
+);
 const cacheFile = process.env.GITHUB_STATS_CACHE_FILE || "";
 const retentionDays = parseInt(
   process.env.GITHUB_STATS_RETENTION_DAYS || "90",
@@ -216,8 +220,7 @@ async function fetchPrs() {
       prs_closed: closedNotMerged.length,
       prs_open_count: openPrs.length,
       pr_cycle_time_median_hours: Math.round(median(cycleTimes) * 10) / 10,
-      pr_review_time_median_hours:
-        Math.round(median(reviewTimes) * 10) / 10,
+      pr_review_time_median_hours: Math.round(median(reviewTimes) * 10) / 10,
     },
     details: {
       openPrs: openPrDetails,
@@ -245,8 +248,7 @@ async function fetchIssues() {
   const now = new Date();
   const agingBuckets = { "0-7": 0, "7-14": 0, "14-30": 0, "30+": 0 };
   for (const issue of openIssues) {
-    const ageDays =
-      (now - new Date(issue.created_at)) / (1000 * 60 * 60 * 24);
+    const ageDays = (now - new Date(issue.created_at)) / (1000 * 60 * 60 * 24);
     if (ageDays <= 7) agingBuckets["0-7"]++;
     else if (ageDays <= 14) agingBuckets["7-14"]++;
     else if (ageDays <= 30) agingBuckets["14-30"]++;
@@ -300,8 +302,7 @@ async function fetchWorkflows() {
     if (run.conclusion === "success") wf.successes++;
     if (run.run_started_at && run.updated_at) {
       const duration =
-        (new Date(run.updated_at) - new Date(run.run_started_at)) /
-        (1000 * 60);
+        (new Date(run.updated_at) - new Date(run.run_started_at)) / (1000 * 60);
       if (duration > 0) wf.durations.push(duration);
     }
   }
@@ -358,10 +359,9 @@ async function fetchWorkflows() {
 async function fetchReleases() {
   console.log("  Fetching releases...");
 
-  const releases = await ghFetchPaginated(
-    `/repos/${owner}/${repo}/releases`,
-    { maxPages: 3 },
-  );
+  const releases = await ghFetchPaginated(`/repos/${owner}/${repo}/releases`, {
+    maxPages: 3,
+  });
 
   const now = new Date();
   const latestRelease = releases.find((r) => !r.prerelease && !r.draft);
@@ -472,10 +472,9 @@ async function fetchContributors() {
 async function fetchBranches() {
   console.log("  Fetching branches...");
 
-  const branches = await ghFetchPaginated(
-    `/repos/${owner}/${repo}/branches`,
-    { maxPages: 3 },
-  );
+  const branches = await ghFetchPaginated(`/repos/${owner}/${repo}/branches`, {
+    maxPages: 3,
+  });
 
   // Get default branch info
   const repoData = await ghFetch(`/repos/${owner}/${repo}`);
@@ -541,9 +540,7 @@ async function fetchCommunity() {
   console.log("  Fetching community profile...");
 
   // Try the community profile endpoint (works for public repos)
-  const profile = await ghFetch(
-    `/repos/${owner}/${repo}/community/profile`,
-  );
+  const profile = await ghFetch(`/repos/${owner}/${repo}/community/profile`);
 
   if (profile) {
     return {
@@ -720,21 +717,6 @@ try {
 
 const outputFile = join(dashbuildDir, "src", "data", `${slug}.json`);
 mkdirSync(dirname(outputFile), { recursive: true });
-
-// Find merge-history.js
-let dbRoot = __dirname;
-while (!existsSync(join(dbRoot, "scripts", "lib"))) {
-  const parent = dirname(dbRoot);
-  if (parent === dbRoot) {
-    console.error("::error::Cannot find Dashbuild root");
-    process.exit(1);
-  }
-  dbRoot = parent;
-}
-
-const { mergeHistory } = await import(
-  join(dbRoot, "scripts", "lib", "merge-history.js")
-);
 
 const historyData = mergeHistory({
   todaysMetrics: metrics,

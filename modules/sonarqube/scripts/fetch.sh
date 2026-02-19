@@ -25,8 +25,10 @@ HOST_URL="${HOST_URL%/}"
 METRICS="${SONAR_METRICS:-bugs,vulnerabilities,code_smells,coverage,duplicated_lines_density,ncloc,security_hotspots,reliability_rating,security_rating,sqale_rating}"
 AREAS="${SONAR_AREAS:-coverage,duplicated_lines_density,code_smells,bugs,vulnerabilities,reliability_rating,security_rating,sqale_rating}"
 RETENTION_DAYS="${SONAR_RETENTION_DAYS:-90}"
+ORGANIZATION="${SONAR_ORGANIZATION:-}"
 
 API_URL="${HOST_URL}/api/measures/component?component=${SONAR_PROJECT_KEY}&metricKeys=${METRICS}"
+[ -n "${ORGANIZATION}" ] && API_URL="${API_URL}&organization=${ORGANIZATION}"
 
 echo "Fetching metrics from: ${API_URL}"
 
@@ -51,14 +53,7 @@ METRICS_JSON="$(node -e "
   process.stdout.write(JSON.stringify(m));
 " "${HTTP_RESPONSE}")"
 
-# Find the repo root to locate the shared merge script
-_DBROOT="${SCRIPT_DIR}"
-while [ ! -d "${_DBROOT}/scripts/lib" ]; do
-    _DBROOT="$(dirname "${_DBROOT}")"
-    [ "${_DBROOT}" = "/" ] && echo "Error: Cannot find Dashbuild root" && exit 1
-done
-
-node "${_DBROOT}/scripts/lib/merge-history.js" \
+node "${SCRIPT_DIR}/../../../scripts/lib/merge-history.js" \
     "${METRICS_JSON}" \
     "${FIXTURE}" \
     "${AREAS}" \

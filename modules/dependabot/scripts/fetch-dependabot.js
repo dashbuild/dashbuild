@@ -1,6 +1,7 @@
-import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
-import { join, dirname, resolve } from "node:path";
+import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
+import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
+import { mergeHistory } from "../../../scripts/lib/merge-history.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const moduleDir = join(__dirname, "..");
@@ -157,8 +158,7 @@ async function fetchDependabotAlerts() {
     const severity = alert.security_advisory?.severity || "low";
     severityCounts[severity] = (severityCounts[severity] || 0) + 1;
 
-    const ecosystem =
-      alert.dependency?.package?.ecosystem || "unknown";
+    const ecosystem = alert.dependency?.package?.ecosystem || "unknown";
     ecosystemCounts[ecosystem] = (ecosystemCounts[ecosystem] || 0) + 1;
 
     return {
@@ -187,13 +187,10 @@ async function fetchDependabotAlerts() {
 
   const dependabotPrs = (allPrs || []).filter(
     (pr) =>
-      pr.user?.login === "dependabot[bot]" ||
-      pr.user?.login === "dependabot",
+      pr.user?.login === "dependabot[bot]" || pr.user?.login === "dependabot",
   );
 
-  const openDependabotPrs = dependabotPrs.filter(
-    (pr) => pr.state === "open",
-  );
+  const openDependabotPrs = dependabotPrs.filter((pr) => pr.state === "open");
   const mergedDependabotPrs = dependabotPrs.filter(
     (pr) => pr.merged_at && new Date(pr.merged_at) >= thirtyDaysAgo,
   );
@@ -310,7 +307,8 @@ async function fetchSecretScanningAlerts() {
 
   const alertDetails = (openAlerts || []).map((alert) => ({
     number: alert.number,
-    secretType: alert.secret_type_display_name || alert.secret_type || "unknown",
+    secretType:
+      alert.secret_type_display_name || alert.secret_type || "unknown",
     createdAt: alert.created_at,
     url: alert.html_url,
   }));
@@ -363,21 +361,6 @@ console.log(`Total API requests: ${requestCount}`);
 
 const outputFile = join(dashbuildDir, "src", "data", `${slug}.json`);
 mkdirSync(dirname(outputFile), { recursive: true });
-
-// Find merge-history.js
-let dbRoot = __dirname;
-while (!existsSync(join(dbRoot, "scripts", "lib"))) {
-  const parent = dirname(dbRoot);
-  if (parent === dbRoot) {
-    console.error("::error::Cannot find Dashbuild root");
-    process.exit(1);
-  }
-  dbRoot = parent;
-}
-
-const { mergeHistory } = await import(
-  join(dbRoot, "scripts", "lib", "merge-history.js")
-);
 
 const historyData = mergeHistory({
   todaysMetrics: metrics,

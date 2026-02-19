@@ -117,15 +117,17 @@ function rewriteModuleActionYml(actionYmlPath, stageDir) {
 }
 
 /**
- * Rewrite JS imports in a staged module's .js files that reference
- * the monorepo's scripts/lib/ via relative paths (e.g. ../../../scripts/lib/).
- * Replaces them with the correct relative path to _shared/lib/ in the
- * published repo, computed from the module's depth.
+ * Rewrite references to scripts/lib/ in a staged module's script files.
+ * Handles both JS imports and shell script paths, replacing monorepo-relative
+ * paths with the correct relative path to _shared/lib/ in the published repo.
  *
- * e.g. code-tasks/scripts/generate-overview.js (depth 1):
- *        ../../../scripts/lib/ → ../../_shared/lib/
- *      javascript/code-statistics/scripts/parse-tests.js (depth 2):
- *        ../../../../scripts/lib/ → ../../../_shared/lib/
+ * e.g. code-tasks (depth 1):
+ *   JS:  from "../../../scripts/lib/"  → from "../../_shared/lib/"
+ *   sh:  ${SCRIPT_DIR}/../../../scripts/lib/ → ${SCRIPT_DIR}/../../_shared/lib/
+ *
+ *      javascript/code-statistics (depth 2):
+ *   JS:  from "../../../../scripts/lib/" → from "../../../_shared/lib/"
+ *   sh:  ${SCRIPT_DIR}/../../../../scripts/lib/ → ${SCRIPT_DIR}/../../../_shared/lib/
  */
 function rewriteModuleImports(moduleDir, stageDir) {
   const relToRoot = relative(stageDir, moduleDir);
@@ -139,15 +141,25 @@ function rewriteModuleImports(moduleDir, stageDir) {
   if (!existsSync(scriptsDir)) return;
 
   for (const file of readdirSync(scriptsDir)) {
-    if (!file.endsWith(".js")) continue;
     const filePath = join(scriptsDir, file);
-    let content = readFileSync(filePath, "utf-8");
-    // Match any chain of ../ ending in scripts/lib/ in import statements
-    content = content.replace(
-      /from\s+["'](\.\.\/)+scripts\/lib\//g,
-      `from "${upToRoot}/_shared/lib/`,
-    );
-    writeFileSync(filePath, content, "utf-8");
+
+    if (file.endsWith(".js")) {
+      let content = readFileSync(filePath, "utf-8");
+      // Match any chain of ../ ending in scripts/lib/ in import statements
+      content = content.replace(
+        /from\s+["'](\.\.\/)+scripts\/lib\//g,
+        `from "${upToRoot}/_shared/lib/`,
+      );
+      writeFileSync(filePath, content, "utf-8");
+    } else if (file.endsWith(".sh")) {
+      let content = readFileSync(filePath, "utf-8");
+      // Match any chain of ../ ending in scripts/lib/ (e.g. ${SCRIPT_DIR}/../../../scripts/lib/)
+      content = content.replace(
+        /(\.\.\/)+scripts\/lib\//g,
+        `${upToRoot}/_shared/lib/`,
+      );
+      writeFileSync(filePath, content, "utf-8");
+    }
   }
 }
 

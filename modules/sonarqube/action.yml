@@ -11,7 +11,11 @@ inputs:
     required: false
     default: "https://sonarcloud.io"
   project-key:
-    description: "SonarQube project key. Required unless data-file is set."
+    description: "SonarQube project key. Required unless data-file is set. Falls back to sonar.projectKey from sonar-project.properties."
+    required: false
+    default: ""
+  organization:
+    description: "SonarCloud organization key. Falls back to sonar.organization from sonar-project.properties."
     required: false
     default: ""
   metrics:
@@ -55,13 +59,28 @@ runs:
         path: .dashbuild-sonarqube-cache
         key: ${{ inputs.cache-key }}
 
+    - name: Read sonar-project.properties
+      if: inputs.data-file == ''
+      id: sonar-props
+      shell: bash
+      run: |
+        PROPS_FILE="${GITHUB_WORKSPACE}/sonar-project.properties"
+        if [ -f "${PROPS_FILE}" ]; then
+          echo "::notice::Found sonar-project.properties"
+          KEY=$(grep -E '^sonar\.projectKey=' "${PROPS_FILE}" | head -1 | cut -d= -f2-)
+          ORG=$(grep -E '^sonar\.organization=' "${PROPS_FILE}" | head -1 | cut -d= -f2-)
+          echo "project-key=${KEY}" >> "$GITHUB_OUTPUT"
+          echo "organization=${ORG}" >> "$GITHUB_OUTPUT"
+        fi
+
     - name: Fetch SonarQube metrics
       if: inputs.data-file == ''
       shell: bash
       env:
         SONAR_TOKEN: ${{ inputs.token }}
         SONAR_HOST_URL: ${{ inputs.host-url }}
-        SONAR_PROJECT_KEY: ${{ inputs.project-key }}
+        SONAR_PROJECT_KEY: ${{ inputs.project-key || steps.sonar-props.outputs.project-key }}
+        SONAR_ORGANIZATION: ${{ inputs.organization || steps.sonar-props.outputs.organization }}
         SONAR_METRICS: ${{ inputs.metrics }}
         SONAR_AREAS: ${{ inputs.areas }}
         SONAR_CACHE_FILE: ${{ inputs.cache-key != '' && '.dashbuild-sonarqube-cache/sonarqube.json' || '' }}
