@@ -19,6 +19,11 @@ inputs:
     required: false
     default: "dashboard"
 
+outputs:
+  dashbuild-dir:
+    description: "Path to the Dashbuild workspace directory"
+    value: ${{ steps.set-workspace.outputs.dashbuild-dir }}
+
 runs:
   using: "composite"
   steps:
@@ -28,6 +33,7 @@ runs:
         node-version: ${{ inputs.node-version }}
 
     - name: Create Dashbuild workspace
+      id: set-workspace
       shell: bash
       env:
         DASHBUILD_TITLE: ${{ inputs.title }}
@@ -36,6 +42,7 @@ runs:
       run: |
         export DASHBUILD_DIR="${RUNNER_TEMP}/dashbuild"
         echo "DASHBUILD_DIR=${DASHBUILD_DIR}" >> "$GITHUB_ENV"
+        echo "dashbuild-dir=${DASHBUILD_DIR}" >> "$GITHUB_OUTPUT"
 
         # Copy the framework skeleton from the action's bundled files
         cp -r "${{ github.action_path }}/../framework" "${DASHBUILD_DIR}"

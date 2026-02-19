@@ -7,6 +7,11 @@ inputs:
     required: false
     default: true
 
+outputs:
+  site-dir:
+    description: "Path to the compiled static site directory, suitable for deployment to GitHub Pages"
+    value: ${{ steps.build-site.outputs.site-dir }}
+
 runs:
   using: "composite"
   steps:
@@ -18,8 +23,10 @@ runs:
         node "${{ github.action_path }}/scripts/assemble-site.js"
 
     - name: Build site
+      id: build-site
       shell: bash
       run: |
         cd "${DASHBUILD_DIR}"
         npx observable build
+        echo "site-dir=${DASHBUILD_DIR}/dist" >> "$GITHUB_OUTPUT"
         echo "::notice::Dashbuild site built successfully"
