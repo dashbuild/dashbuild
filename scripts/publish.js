@@ -117,6 +117,41 @@ function rewriteModuleActionYml(actionYmlPath, stageDir) {
 }
 
 /**
+ * Rewrite JS imports in a staged module's .js files that reference
+ * the monorepo's scripts/lib/ via relative paths (e.g. ../../../scripts/lib/).
+ * Replaces them with the correct relative path to _shared/lib/ in the
+ * published repo, computed from the module's depth.
+ *
+ * e.g. code-tasks/scripts/generate-overview.js (depth 1):
+ *        ../../../scripts/lib/ → ../../_shared/lib/
+ *      javascript/code-statistics/scripts/parse-tests.js (depth 2):
+ *        ../../../../scripts/lib/ → ../../../_shared/lib/
+ */
+function rewriteModuleImports(moduleDir, stageDir) {
+  const relToRoot = relative(stageDir, moduleDir);
+  const depth = relToRoot.split("/").length;
+  // From a module's scripts/ dir, we need depth+1 levels of ../ to reach the repo root
+  const upToRoot = Array(depth + 1)
+    .fill("..")
+    .join("/");
+
+  const scriptsDir = join(moduleDir, "scripts");
+  if (!existsSync(scriptsDir)) return;
+
+  for (const file of readdirSync(scriptsDir)) {
+    if (!file.endsWith(".js")) continue;
+    const filePath = join(scriptsDir, file);
+    let content = readFileSync(filePath, "utf-8");
+    // Match any chain of ../ ending in scripts/lib/ in import statements
+    content = content.replace(
+      /from\s+["'](\.\.\/)+scripts\/lib\//g,
+      `from "${upToRoot}/_shared/lib/`,
+    );
+    writeFileSync(filePath, content, "utf-8");
+  }
+}
+
+/**
  * Rewrite JS imports in compile/scripts/assemble-site.js that reference
  * ../../scripts/lib/ to use ../_shared/lib/ instead.
  */
@@ -222,6 +257,7 @@ function stageModules() {
         // This is a module — copy it and rewrite its action.yml
         cpSync(fullPath, targetPath, { recursive: true });
         rewriteModuleActionYml(join(targetPath, "action.yml"), stageDir);
+        rewriteModuleImports(targetPath, stageDir);
       } else {
         // This is a grouping directory (e.g. javascript/) — recurse
         mkdirSync(targetPath, { recursive: true });
