@@ -78,12 +78,6 @@ function rewriteStandaloneActionYml(actionYmlPath, repoName) {
     "${{ github.action_path }}/_shared/lib/",
   );
 
-  // Remove the "Resolve Dashbuild root" step block
-  content = content.replace(
-    /\n\s*- name: Resolve Dashbuild root\n\s*shell: bash\n\s*run: \|[\s\S]*?(?=\n\s*- name:)/,
-    "\n",
-  );
-
   // For the setup action, rewrite the framework copy path
   if (repoName === "setup") {
     content = content.replace(
@@ -97,17 +91,17 @@ function rewriteStandaloneActionYml(actionYmlPath, repoName) {
 
 /**
  * Rewrite a module action.yml for the modules repo.
- * The "Resolve Dashbuild root" step walks up looking for scripts/lib.
- * We rewrite it to look for _shared/lib instead, and update all
- * ${DASHBUILD_ROOT}/scripts/lib/ references to ${DASHBUILD_ROOT}/_shared/lib/.
+ * - Rewrites `uses: ./actions/resolve-dashbuild-root` to the path where the
+ *   shared action is bundled in the published repo (_shared/actions/resolve-dashbuild-root).
+ * - Updates ${DASHBUILD_ROOT}/scripts/lib/ references to _shared/lib/.
  */
 function rewriteModuleActionYml(actionYmlPath) {
   let content = readFileSync(actionYmlPath, "utf-8");
 
-  // Update the walk-up marker from scripts/lib to _shared/lib
+  // Rewrite the local action path to where it is bundled in the published repo
   content = content.replace(
-    /\"\$\{_DIR\}\/scripts\/lib\"/g,
-    '"${_DIR}/_shared/lib"',
+    /uses: \.\/actions\/resolve-dashbuild-root/g,
+    "uses: ./_shared/actions/resolve-dashbuild-root",
   );
 
   // Update references to use _shared/lib instead of scripts/lib
@@ -193,14 +187,15 @@ function stageCompile() {
 }
 
 /**
- * Stage the modules repo: all modules + _shared/lib/ at root.
+ * Stage the modules repo: all modules + _shared/ at root.
  *
  * Published structure:
- *   _shared/lib/          ← scripts/lib (shared code)
- *   code-tasks/           ← modules/code-tasks
- *   sonarqube/            ← modules/sonarqube
+ *   _shared/lib/                              ← scripts/lib (shared code)
+ *   _shared/actions/resolve-dashbuild-root/   ← actions/resolve-dashbuild-root
+ *   code-tasks/                               ← modules/code-tasks
+ *   sonarqube/                                ← modules/sonarqube
  *   javascript/
- *     code-statistics/    ← modules/javascript/code-statistics
+ *     code-statistics/                        ← modules/javascript/code-statistics
  *   ...
  */
 function stageModules() {
@@ -212,6 +207,13 @@ function stageModules() {
   cpSync(join(ROOT, "scripts/lib"), join(stageDir, "_shared/lib"), {
     recursive: true,
   });
+
+  // Bundle shared actions so module action.ymls can reference them with a local path
+  cpSync(
+    join(ROOT, "actions/resolve-dashbuild-root"),
+    join(stageDir, "_shared/actions/resolve-dashbuild-root"),
+    { recursive: true },
+  );
 
   // Copy each module (excluding _template)
   const modulesSource = join(ROOT, "modules");
