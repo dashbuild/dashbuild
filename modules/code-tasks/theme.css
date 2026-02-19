@@ -40,6 +40,12 @@
   --gh-border: #30363d;
   --gh-border-muted: #21262d;
 
+  /* Dashbuild shared component variables */
+  --dash-border: var(--gh-border);
+  --dash-divider: var(--gh-border);
+  --dash-accent-primary: var(--gh-blue);
+  --dash-accent-secondary: var(--gh-green);
+
   /* Code block */
   --gh-code-bg: #0d1117;
   --gh-code-header-bg: #161b22;
@@ -64,34 +70,6 @@ body {
 h1 {
   color: var(--theme-foreground);
   font-weight: 600;
-}
-
-h2 {
-  color: var(--theme-foreground);
-  border-bottom: 1px solid var(--gh-border);
-  padding-bottom: 0.4rem;
-  margin-bottom: 1rem;
-  font-weight: 600;
-  letter-spacing: -0.01em;
-}
-
-/* ── Cards ─────────────────────────────────────────────────────────── */
-
-.card {
-  border: 1px solid var(--gh-border);
-  border-radius: 6px;
-  background: var(--theme-background-alt);
-}
-
-.card h2 {
-  border-bottom: none;
-  padding-bottom: 0;
-  margin-bottom: 0.25rem;
-  font-size: 0.8rem;
-  font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--theme-foreground-muted);
 }
 
 /* ── Compact overview (no .card — avoids Observable loading spinner) ── */
@@ -120,8 +98,7 @@ h2 {
   color: var(--theme-foreground);
 }
 
-/* ── Tag badges ────────────────────────────────────────────────────── */
-/* Uses tag-<name> classes to avoid collision with Observable's .note   */
+/* ── Tag badges — alias shared class for backward compat ──────────── */
 
 .tag-badge {
   display: inline-flex;
@@ -237,74 +214,6 @@ h2 {
 
 .task-code tr.context-line {
   background: transparent;
-}
-
-/* ── Task toggle buttons ───────────────────────────────────────────── */
-
-.task-toggle-row {
-  display: flex;
-  gap: 0.4rem;
-  flex-wrap: wrap;
-  margin-bottom: 0.4rem;
-}
-
-.task-action-row {
-  display: flex;
-  gap: 0.4rem;
-  margin-bottom: 1rem;
-}
-
-.task-action-btn {
-  display: inline-flex;
-  align-items: center;
-  padding: 0.3rem 0.65rem;
-  border: 1px solid var(--gh-border);
-  border-radius: 6px;
-  background: var(--theme-background-alt);
-  color: var(--theme-foreground-muted);
-  font-family: var(--theme-font);
-  font-size: 0.75rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-
-.task-action-btn:hover {
-  border-color: var(--theme-foreground-faint);
-  color: var(--theme-foreground);
-}
-
-.task-toggle {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  padding: 0.35rem 0.7rem;
-  border: 1px solid var(--gh-border);
-  border-radius: 6px;
-  background: var(--theme-background-alt);
-  color: var(--theme-foreground-muted);
-  font-family: var(--theme-font);
-  font-size: 0.8rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.15s ease;
-  opacity: 0.5;
-}
-
-.task-toggle:hover {
-  border-color: var(--theme-foreground-faint);
-  opacity: 0.75;
-}
-
-.task-toggle.active {
-  opacity: 1;
-  color: #fff;
-}
-
-.task-toggle-count {
-  font-weight: 700;
-  font-size: 0.75rem;
-  opacity: 0.8;
 }
 
 /* ── Collapsible code preview ─────────────────────────────────────── */

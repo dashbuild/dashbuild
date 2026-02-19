@@ -11,12 +11,8 @@ const data = /*INLINE_DATA*/ {};
 ```
 
 ```js
-import {
-  formatMetric,
-  calculateTrend,
-  buildTrendChart,
-  makeArrowNode,
-} from "./components/trendChart.js";
+import { buildTrendChart } from "./components/trendChart.js";
+import { metricGrid } from "./components/dashbuild-components.js";
 ```
 
 ```js
@@ -40,7 +36,15 @@ const coverageAreaKeys = [
 const hasTests = testAreaKeys.some((k) => enabledAreas.has(k));
 const hasCoverage = coverageAreaKeys.some((k) => enabledAreas.has(k));
 
-let sectionIndex = 0;
+const sectionOrder = [
+  "codebase",
+  hasTests ? ["testing", "testResults"] : [],
+  hasCoverage ? ["coverage"] : [],
+  "trends",
+];
+const sectionIndexByKey = Object.fromEntries(
+  sectionOrder.flat().map((key, index) => [key, index]),
+);
 
 const metricHistory = data.history.map((entry) => ({
   ...entry,
@@ -49,223 +53,155 @@ const metricHistory = data.history.map((entry) => ({
 
 const latestMetrics = metricHistory[metricHistory.length - 1]?.metrics ?? {};
 
-// Convenience wrappers that bind metricHistory and latestMetrics
-function statsTrend(metricKey, opts) {
-  return calculateTrend(metricHistory, latestMetrics, metricKey, opts);
-}
+// Convenience wrapper that binds metricHistory and latestMetrics
 function statsChart(metricKey, opts) {
   return buildTrendChart(metricHistory, latestMetrics, metricKey, opts);
 }
 ```
 
-<div class="dash-section" style="${`--si:${sectionIndex++}`}">
-
-### Codebase
-
 ```js
-const codeCards = [];
-
-const codeMetrics = [
-  { key: "total_lines", label: "Total Lines", highlight: true },
-  { key: "total_files", label: "Total Files", highlight: true },
-  { key: "source_files", label: "Source Files" },
-  { key: "test_files", label: "Test Files" },
-  { key: "packages", label: "Packages" },
-  { key: "avg_lines_per_file", label: "Avg Lines / File" },
-];
-
-for (const metric of codeMetrics) {
-  const value = latestMetrics[metric.key];
-  if (value != null) {
-    const trend = statsTrend(metric.key, { neutral: true });
-    const trendHtml = trend.text
-      ? html`<span class="muted trend-container" style="font-size: 0.75rem;">
-          ${makeArrowNode(trend)}${trend.text} from previous
-        </span>`
-      : "";
-    const inner = html`<div class="card summary-card">
-      <h2>${metric.label}</h2>
-      <span class="big ${metric.highlight ? "purple" : ""}"
-        >${formatMetric(value)}</span
-      >
-      ${trendHtml}
-    </div>`;
-    codeCards.push(
-      metric.highlight
-        ? html`<div class="gradient-card-purple">${inner}</div>`
-        : inner,
-    );
-  }
-}
+display(
+  metricGrid(
+    [
+      {
+        key: "total_lines",
+        label: "Total Lines",
+        highlight: "primary",
+        colorClass: "accent-primary",
+        neutral: true,
+      },
+      {
+        key: "total_files",
+        label: "Total Files",
+        highlight: "primary",
+        colorClass: "accent-primary",
+        neutral: true,
+      },
+      { key: "source_files", label: "Source Files", neutral: true },
+      { key: "test_files", label: "Test Files", neutral: true },
+      { key: "packages", label: "Packages", neutral: true },
+      { key: "avg_lines_per_file", label: "Avg Lines / File", neutral: true },
+    ],
+    latestMetrics,
+    metricHistory,
+    {
+      cols: 3,
+      sectionIndex: sectionIndexByKey.codebase,
+      sectionTitle: "Codebase",
+    },
+  ),
+);
 ```
-
-<div class="grid grid-cols-3 skel-cards-3">
-  ${codeCards}
-</div>
-</div>
 
 ```js
 if (hasTests) {
-  const testCards = [];
+  const failedValue = latestMetrics["tests_failed"];
+  const failedIsRed = failedValue != null && failedValue > 0;
 
-  const testMetrics = [
-    { key: "test_pass_rate", label: "Pass Rate", suffix: "%", highlight: true },
-    { key: "tests_failed", label: "Failed", inverse: true, highlight: true },
-    { key: "test_to_code_ratio", label: "Tests / 1k Lines" },
-  ];
-
-  for (const metric of testMetrics) {
-    const value = latestMetrics[metric.key];
-    if (value != null) {
-      const isFailed = metric.key === "tests_failed";
-      const colorClass = metric.highlight
-        ? isFailed && value > 0
-          ? "red"
-          : "purple"
-        : "";
-      const useHighlight = metric.highlight && !(isFailed && value > 0);
-      const trend = statsTrend(metric.key, { inverse: metric.inverse });
-      const trendHtml = trend.text
-        ? html`<span class="muted trend-container" style="font-size: 0.75rem;">
-            ${makeArrowNode(trend)}${trend.text}${metric.suffix || ""} from
-            previous
-          </span>`
-        : "";
-      const inner = html`<div class="card summary-card">
-        <h2>${metric.label}</h2>
-        <span class="big ${colorClass}"
-          >${formatMetric(value, metric.suffix)}</span
-        >
-        ${trendHtml}
-      </div>`;
-      testCards.push(
-        useHighlight
-          ? html`<div class="gradient-card-purple">${inner}</div>`
-          : inner,
-      );
-    }
-  }
-
-  if (testCards.length > 0) {
-    display(
-      html`<div class="dash-section" style="${`--si:${sectionIndex++}`}">
-        <h3>Testing</h3>
-        <div class="grid grid-cols-3 skel-cards-3">${testCards}</div>
-      </div>`,
-    );
-  }
+  display(
+    metricGrid(
+      [
+        {
+          key: "test_pass_rate",
+          label: "Pass Rate",
+          suffix: "%",
+          highlight: "primary",
+          colorClass: "accent-primary",
+        },
+        {
+          key: "tests_failed",
+          label: "Failed",
+          inverse: true,
+          highlight: failedIsRed ? false : "primary",
+          colorClass: failedIsRed ? "red" : "accent-primary",
+        },
+        { key: "test_to_code_ratio", label: "Tests / 1k Lines" },
+      ],
+      latestMetrics,
+      metricHistory,
+      {
+        cols: 3,
+        sectionIndex: sectionIndexByKey.testing,
+        sectionTitle: "Testing",
+      },
+    ),
+  );
 }
 ```
 
 ```js
 if (hasTests) {
-  const resultCards = [];
+  const failedResultValue = latestMetrics["tests_failed"];
+  const failedResultIsRed = failedResultValue != null && failedResultValue > 0;
 
-  const resultMetrics = [
-    { key: "tests", label: "Tests" },
-    { key: "tests_passed", label: "Passed", color: "teal" },
-    { key: "test_suites", label: "Test Suites" },
-    { key: "tests_failed", label: "Failed", inverse: true },
-    { key: "tests_skipped", label: "Skipped", neutral: true },
-  ];
-
-  for (const metric of resultMetrics) {
-    const value = latestMetrics[metric.key];
-    if (value != null) {
-      const isFailed = metric.key === "tests_failed";
-      const colorClass =
-        isFailed && value > 0 ? "red" : metric.color || "muted-value";
-      const trend = statsTrend(metric.key, {
-        inverse: metric.inverse,
-        neutral: metric.neutral,
-      });
-      const trendHtml = trend.text
-        ? html`<span class="muted trend-container" style="font-size: 0.75rem;">
-            ${makeArrowNode(trend)}${trend.text} from previous
-          </span>`
-        : "";
-      resultCards.push(
-        html`<div class="card summary-card">
-          <h2>${metric.label}</h2>
-          <span class="big ${colorClass}">${formatMetric(value)}</span>
-          ${trendHtml}
-        </div>`,
-      );
-    }
-  }
-
-  if (resultCards.length > 0) {
-    display(
-      html`<div class="dash-section" style="${`--si:${sectionIndex++}`}">
-        <h3>Test Results</h3>
-        <div class="grid grid-cols-4 skel-cards-4">${resultCards}</div>
-      </div>`,
-    );
-  }
+  display(
+    metricGrid(
+      [
+        { key: "tests", label: "Tests", colorClass: "muted-value" },
+        {
+          key: "tests_passed",
+          label: "Passed",
+          colorClass: "accent-secondary",
+        },
+        { key: "test_suites", label: "Test Suites", colorClass: "muted-value" },
+        {
+          key: "tests_failed",
+          label: "Failed",
+          inverse: true,
+          colorClass: failedResultIsRed ? "red" : "muted-value",
+        },
+        {
+          key: "tests_skipped",
+          label: "Skipped",
+          neutral: true,
+          colorClass: "muted-value",
+        },
+      ],
+      latestMetrics,
+      metricHistory,
+      {
+        cols: 4,
+        sectionIndex: sectionIndexByKey.testResults,
+        sectionTitle: "Test Results",
+      },
+    ),
+  );
 }
 ```
 
 ```js
 if (hasCoverage) {
-  const coverageCards = [];
-
-  const coverageMetrics = [
-    {
-      key: "line_coverage",
-      label: "Line Coverage",
-      suffix: "%",
-      highlight: true,
-    },
-    {
-      key: "branch_coverage",
-      label: "Branch Coverage",
-      suffix: "%",
-      highlight: true,
-    },
-    { key: "function_coverage", label: "Function Coverage", suffix: "%" },
-    { key: "uncovered_lines", label: "Uncovered Lines" },
-  ];
-
-  for (const metric of coverageMetrics) {
-    const value = latestMetrics[metric.key];
-    if (value != null) {
-      const isWarning = metric.key === "uncovered_lines";
-      const trend = statsTrend(metric.key, { inverse: isWarning });
-      const trendHtml = trend.text
-        ? html`<span class="muted trend-container" style="font-size: 0.75rem;">
-            ${makeArrowNode(trend)}${trend.text}${metric.suffix || ""} from
-            previous
-          </span>`
-        : "";
-      const inner = html`<div class="card summary-card">
-        <h2>${metric.label}</h2>
-        <span class="big ${metric.highlight ? "purple" : ""}"
-          >${formatMetric(value, metric.suffix)}</span
-        >
-        ${trendHtml}
-      </div>`;
-      coverageCards.push(
-        metric.highlight
-          ? html`<div class="gradient-card-purple">${inner}</div>`
-          : inner,
-      );
-    }
-  }
-
-  if (coverageCards.length > 0) {
-    display(
-      html`<div class="dash-section" style="${`--si:${sectionIndex++}`}">
-        <h3>Coverage</h3>
-        <div class="grid grid-cols-4 skel-cards-4">${coverageCards}</div>
-      </div>`,
-    );
-  }
+  display(
+    metricGrid(
+      [
+        {
+          key: "line_coverage",
+          label: "Line Coverage",
+          suffix: "%",
+          highlight: "primary",
+          colorClass: "accent-primary",
+        },
+        {
+          key: "branch_coverage",
+          label: "Branch Coverage",
+          suffix: "%",
+          highlight: "primary",
+          colorClass: "accent-primary",
+        },
+        { key: "function_coverage", label: "Function Coverage", suffix: "%" },
+        { key: "uncovered_lines", label: "Uncovered Lines", inverse: true },
+      ],
+      latestMetrics,
+      metricHistory,
+      {
+        cols: 4,
+        sectionIndex: sectionIndexByKey.coverage,
+        sectionTitle: "Coverage",
+      },
+    ),
+  );
 }
 ```
-
-<div class="dash-section" style="${`--si:${sectionIndex++}`}">
-
-## Trends
 
 ```js
 const trendCards = [];
@@ -410,9 +346,11 @@ if (enabledAreas.has("avg_lines_per_file")) {
     }),
   );
 }
-```
 
-<div class="grid grid-cols-2 skel-charts-2">
-  ${trendCards}
-</div>
-</div>
+display(
+  html`<div class="dash-section" style="--si:${sectionIndexByKey.trends}">
+    <h2>Trends</h2>
+    <div class="grid grid-cols-2 skel-charts-2">${trendCards}</div>
+  </div>`,
+);
+```

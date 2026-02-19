@@ -87,6 +87,10 @@ function highlightCode(code, lang) {
 ```
 
 ```js
+import { filterRow, actionRow } from "./components/dashbuild-components.js";
+```
+
+```js
 const allTasks = data.tasks;
 const summary = data.summary;
 const tags = data.tags;
@@ -134,7 +138,7 @@ function escapeHtml(str) {
 }
 ```
 
-<div class="dash-section skel-summary" style="--si:0">
+<div class="dash-section skel-summary" style="--si:2">
 <div class="muted" style="font-size: 0.85rem; margin-bottom: 0.75rem;">
   ${summary.total} task(s) across ${summary.filesWithTasks} file(s). Scanned ${summary.filesScanned} file(s).
 </div>
@@ -144,87 +148,60 @@ function escapeHtml(str) {
 const enabledSet = new Set(activeTags);
 const enabledInput = Inputs.input(enabledSet);
 
-function toggleTag(tag) {
-  if (enabledSet.has(tag)) enabledSet.delete(tag);
-  else enabledSet.add(tag);
+function syncInput() {
   enabledInput.value = enabledSet;
   enabledInput.dispatchEvent(new Event("input", { bubbles: true }));
 }
 
-const toggleRow = document.createElement("div");
-toggleRow.className = "task-toggle-row dash-section skel-toggles";
-toggleRow.style.setProperty("--si", "1");
+const tagConfigs = activeTags.map((tag) => ({
+  label: tag,
+  count: summary.byTag[tag] || 0,
+  color: tagColor(tag),
+  bgAlpha: tagBgAlpha(tag, 0.15),
+}));
 
-for (const tag of activeTags) {
-  const btn = document.createElement("button");
-  btn.className = "task-toggle active";
-  btn.innerHTML = `${tag} <span class="task-toggle-count">${summary.byTag[tag]}</span>`;
-
-  const color = tagColor(tag);
-  function applyActive(el) {
-    el.style.borderColor = color;
-    el.style.background = tagBgAlpha(tag, 0.15);
-    el.style.color = color;
-  }
-  function applyInactive(el) {
-    el.style.borderColor = "";
-    el.style.background = "";
-    el.style.color = "";
-  }
-  applyActive(btn);
-
-  btn.addEventListener("click", () => {
-    toggleTag(tag);
-    const isActive = btn.classList.toggle("active");
-    if (isActive) applyActive(btn);
-    else applyInactive(btn);
-  });
-  toggleRow.appendChild(btn);
-}
-
-display(toggleRow);
-
-// Select All / Clear All buttons
-const tagButtons = toggleRow.querySelectorAll(".task-toggle");
-
-const actionRow = document.createElement("div");
-actionRow.className = "task-action-row dash-section";
-actionRow.style.setProperty("--si", "1");
-
-const selectAllBtn = document.createElement("button");
-selectAllBtn.className = "task-action-btn";
-selectAllBtn.textContent = "Select all";
-selectAllBtn.addEventListener("click", () => {
-  for (const tag of activeTags) enabledSet.add(tag);
-  enabledInput.value = enabledSet;
-  enabledInput.dispatchEvent(new Event("input", { bubbles: true }));
-  tagButtons.forEach((btn) => {
-    btn.classList.add("active");
-    const tag = btn.textContent.trim().split(" ")[0];
-    btn.style.borderColor = tagColor(tag);
-    btn.style.background = tagBgAlpha(tag, 0.15);
-    btn.style.color = tagColor(tag);
-  });
+const filters = filterRow(tagConfigs, {
+  onToggle: (label, isActive) => {
+    if (isActive) enabledSet.add(label);
+    else enabledSet.delete(label);
+    syncInput();
+  },
+  sectionIndex: 0,
 });
+filters.row.classList.add("skel-toggles");
 
-const clearAllBtn = document.createElement("button");
-clearAllBtn.className = "task-action-btn";
-clearAllBtn.textContent = "Clear all";
-clearAllBtn.addEventListener("click", () => {
-  enabledSet.clear();
-  enabledInput.value = enabledSet;
-  enabledInput.dispatchEvent(new Event("input", { bubbles: true }));
-  tagButtons.forEach((btn) => {
-    btn.classList.remove("active");
-    btn.style.borderColor = "";
-    btn.style.background = "";
-    btn.style.color = "";
-  });
-});
+display(filters.row);
 
-actionRow.appendChild(selectAllBtn);
-actionRow.appendChild(clearAllBtn);
-display(actionRow);
+const actionsRow = actionRow(
+  [
+    {
+      label: "Select all",
+      onClick: () => {
+        for (const tag of activeTags) enabledSet.add(tag);
+        syncInput();
+        filters.setAll(true);
+      },
+    },
+    {
+      label: "Clear all",
+      onClick: () => {
+        enabledSet.clear();
+        syncInput();
+        filters.setAll(false);
+      },
+    },
+    {
+      label: "Collapse all",
+      onClick: () => {
+        document.querySelectorAll(".task-block").forEach((block) => {
+          block.classList.add("collapsed");
+        });
+      },
+    },
+  ],
+  { sectionIndex: 0 },
+);
+display(actionsRow);
 ```
 
 ```js
@@ -252,7 +229,7 @@ const filteredTasks = allTasks
 const usedLangs = new Set(filteredTasks.map((t) => t.language));
 await Promise.all([...usedLangs].map((lang) => ensureLang(lang)));
 
-const taskBlocks = filteredTasks.map((task) => {
+const taskBlocks = filteredTasks.map((task, taskIndex) => {
   const allLines = [
     ...task.context.before,
     task.context.taskLine,
@@ -279,7 +256,10 @@ const taskBlocks = filteredTasks.map((task) => {
   tableEl.className = "task-code";
   tableEl.innerHTML = `<table class="task-code-table">${rows.join("\n")}</table>`;
 
-  const block = html`<div class="task-block">
+  const block = html`<div
+    class="task-block dash-section"
+    style="--si:${taskIndex + 3}"
+  >
     <div
       class="task-header"
       onclick=${(e) => {
@@ -308,13 +288,12 @@ const taskBlocks = filteredTasks.map((task) => {
 ```js
 if (taskBlocks.length > 0) {
   const container = document.createElement("div");
-  container.className = "task-block-container dash-section skel-tasks";
-  container.style.setProperty("--si", "3");
+  container.className = "task-block-container skel-tasks";
   for (const block of taskBlocks) container.appendChild(block);
   display(container);
 } else {
   display(
-    html`<div class="tip dash-section" style="--si:3">
+    html`<div class="tip dash-section" style="--si:4">
       No tasks match the current filter.
     </div>`,
   );

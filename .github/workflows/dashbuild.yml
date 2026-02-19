@@ -11,6 +11,10 @@ permissions:
   contents: read
   pages: write
   id-token: write
+  pull-requests: read
+  issues: read
+  actions: read
+  security-events: read
 
 concurrency:
   group: "pages"
@@ -54,6 +58,16 @@ jobs:
         uses: ./modules/sonarqube
         with:
           data-file: modules/sonarqube/fixtures/sonarqube-test.json
+
+      - name: GitHub Statistics
+        uses: ./modules/github-statistics
+        with:
+          data-file: modules/github-statistics/fixtures/github-statistics.json
+
+      - name: Dependabot
+        uses: ./modules/dependabot
+        with:
+          data-file: modules/dependabot/fixtures/dependabot.json
 
       # ───────────────────────────────────────────────────────────────────
 

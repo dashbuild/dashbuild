@@ -65,7 +65,7 @@ const frameworkConfig = {
   root: "src",
   theme: siteConfig.theme || "dashboard",
   pager: false,
-  head: `<link rel="stylesheet" href="./components/dashbuild-base.css"><style>observablehq-loading{display:none!important}.observablehq--block:empty{display:none!important}#observablehq-footer{opacity:0;animation:dashFadeIn 150ms ease-out forwards;animation-delay:calc(6 * 30ms)}</style>`,
+  head: `<link rel="stylesheet" href="./components/dashbuild-base.css"><link rel="stylesheet" href="./components/dashbuild-components.css"><style>observablehq-loading{display:none!important}.observablehq--block:empty{display:none!important}#observablehq-footer{opacity:0;animation:dashFadeIn 150ms ease-out forwards;animation-delay:calc(6 * 30ms)}</style>`,
   pages: sidebarPages,
 };
 

@@ -12,6 +12,12 @@ const data = /*INLINE_DATA*/ {};
 
 ```js
 import { metricCard, percentBar } from "./components/metricCard.js";
+import {
+  summaryCard,
+  metricGrid,
+  filterRow,
+  actionRow,
+} from "./components/dashbuild-components.js";
 ```
 
 <div class="dash-section" style="--si:0">

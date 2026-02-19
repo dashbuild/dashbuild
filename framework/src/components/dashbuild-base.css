@@ -15,7 +15,8 @@
  * ════════════════════════════════════════════════════════════════════ */
 
 :root {
-  --stagger-delay: 60ms; /* ← delay between each section          */
+  --stagger-start-delay: 50ms; /* ← delay before first section */
+  --stagger-delay: 60ms; /* ← delay between each section */
 }
 
 @keyframes dashFadeIn {
@@ -32,7 +33,9 @@
 .dash-section {
   opacity: 0;
   animation: dashFadeIn 300ms ease-out forwards;
-  animation-delay: calc(var(--si, 0) * var(--stagger-delay));
+  animation-delay: calc(
+    var(--stagger-start-delay) + var(--si, 0) * var(--stagger-delay)
+  );
 }
 
 /* ── Skeleton sizing — reserves space before JS renders ───────────── */
@@ -68,6 +71,7 @@
   align-items: center;
   gap: 0.3rem;
   font-size: 0.8rem;
+  margin-top: 0.25rem;
 }
 
 .trend-arrow {

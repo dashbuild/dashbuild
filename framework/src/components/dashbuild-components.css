@@ -1,0 +1,526 @@
+/*
+ * Dashbuild shared component styles
+ *
+ * Unified component library used by all modules.
+ * Import this in each module's theme.css (or via the head tag)
+ * alongside dashbuild-base.css.
+ *
+ * CSS variable contract — each module's theme.css must define:
+ *   --theme-foreground, --theme-foreground-muted, --theme-foreground-faint
+ *   --theme-foreground-fainter, --theme-foreground-faintest
+ *   --theme-background, --theme-background-alt
+ *   --dash-border          (card/component border color)
+ *   --dash-divider         (section divider color)
+ *   --dash-trend-up, --dash-trend-down, --dash-trend-flat
+ *
+ * Optional variables for gradient cards:
+ *   --dash-gradient-from, --dash-gradient-to
+ */
+
+/* Prevent horizontal scrollbar from 100vw pseudo-elements */
+body {
+  overflow-x: hidden;
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+ * SECTION HEADINGS
+ *
+ * h2/h3 headings get a full-bleed divider that spans the entire
+ * viewport width, breaking out of the Observable Framework content
+ * container via a 100vw pseudo-element.
+ * ════════════════════════════════════════════════════════════════════ */
+
+h2,
+h3 {
+  position: relative;
+  max-width: none;
+  border-bottom: none;
+  width: 100%;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+h2 {
+  padding-bottom: 0.4rem;
+  margin-bottom: 1rem;
+}
+
+h3 {
+  padding-bottom: 0rem;
+  margin-bottom: 0.5rem;
+  margin-top: 1.25rem;
+}
+
+h2::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 0px;
+  right: 0px;
+  height: 1px;
+  background: var(--dash-divider, var(--theme-foreground-fainter));
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+ * CARDS — base card container
+ * ════════════════════════════════════════════════════════════════════ */
+
+.card {
+  border: 1px solid var(--dash-border, var(--theme-foreground-fainter));
+  border-radius: 0.5rem;
+  background: var(--theme-background-alt);
+}
+
+.card h2 {
+  border-bottom: none;
+  padding-bottom: 0;
+  margin-bottom: 0.25rem;
+  margin-left: 0;
+  margin-right: 0;
+  padding-left: 0;
+  padding-right: 0;
+  font-size: 0.8rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  background: none;
+  -webkit-text-fill-color: var(--theme-foreground-muted);
+  color: var(--theme-foreground-muted);
+}
+
+.card h2::after {
+  display: none;
+}
+
+.card svg {
+  width: 100%;
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+ * SUMMARY CARDS — centered stat display with title, value, trend
+ * ════════════════════════════════════════════════════════════════════ */
+
+.summary-card {
+  padding: 0.75rem;
+}
+
+.summary-card.centered {
+  text-align: center;
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+ * METRIC VALUES — .big with color variants
+ * ════════════════════════════════════════════════════════════════════ */
+
+.big {
+  font-size: 1.6rem;
+  font-weight: 600;
+  text-shadow: 0 0 24px rgba(167, 139, 250, 0.15);
+}
+
+.big.accent-primary {
+  color: var(--dash-accent-primary, var(--theme-foreground-focus));
+  text-shadow: 0 0 24px
+    color-mix(
+      in srgb,
+      var(--dash-accent-primary, var(--theme-foreground-focus)) 20%,
+      transparent
+    );
+}
+
+.big.accent-secondary {
+  color: var(--dash-accent-secondary, var(--theme-foreground-muted));
+  text-shadow: 0 0 24px
+    color-mix(
+      in srgb,
+      var(--dash-accent-secondary, var(--theme-foreground-muted)) 20%,
+      transparent
+    );
+}
+
+.big.red {
+  color: #ef4444;
+  text-shadow: 0 0 24px rgba(239, 68, 68, 0.2);
+}
+
+.big.green {
+  color: #22c55e;
+  text-shadow: 0 0 24px rgba(34, 197, 94, 0.2);
+}
+
+.big.muted-value {
+  color: var(--theme-foreground-muted);
+  text-shadow: none;
+}
+
+/* Legacy color aliases — modules can still use these */
+.big.teal {
+  color: var(--dash-accent-secondary, #2dd4bf);
+  text-shadow: 0 0 24px
+    color-mix(in srgb, var(--dash-accent-secondary, #2dd4bf) 20%, transparent);
+}
+
+.big.purple {
+  color: var(--dash-accent-primary, #a78bfa);
+  text-shadow: 0 0 24px
+    color-mix(in srgb, var(--dash-accent-primary, #a78bfa) 20%, transparent);
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+ * GRADIENT BORDER CARDS — layered div approach for gradient borders
+ *
+ * Usage: <div class="dash-gradient-card"><div class="card ...">...</div></div>
+ * Customize gradient via --dash-gradient-from / --dash-gradient-to
+ * or use preset variants: .dash-gradient-card-primary, .dash-gradient-card-secondary
+ * ════════════════════════════════════════════════════════════════════ */
+
+/* Shared base for all gradient card wrappers */
+.dash-gradient-card,
+.dash-gradient-card-primary,
+.dash-gradient-card-secondary {
+  border-radius: 10px;
+  padding: 2px;
+  display: flex;
+  min-height: 0;
+}
+
+.dash-gradient-card .card,
+.dash-gradient-card-primary .card,
+.dash-gradient-card-secondary .card {
+  background: var(--theme-background-alt);
+  border-radius: 8px;
+  border: none;
+  margin: 0;
+  flex: 1;
+}
+
+.dash-gradient-card {
+  background: linear-gradient(
+    135deg,
+    var(--dash-gradient-from, var(--dash-accent-primary, #6366f1)),
+    var(--dash-gradient-to, var(--dash-accent-primary, #6366f1))
+  );
+}
+
+/* Preset: primary accent gradient */
+.dash-gradient-card-primary {
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--dash-accent-primary, #6366f1) 70%, black),
+    var(--dash-accent-primary, #6366f1)
+  );
+}
+
+/* Preset: secondary accent gradient */
+.dash-gradient-card-secondary {
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--dash-accent-secondary, #2dd4bf) 70%, black),
+    var(--dash-accent-secondary, #2dd4bf)
+  );
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+ * RATING BADGE — circular badge with letter/number inside
+ *
+ * Usage: <span class="dash-rating-badge" style="background: ...">A</span>
+ * ════════════════════════════════════════════════════════════════════ */
+
+.dash-rating-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2.2rem;
+  min-height: 2.2rem;
+  margin-top: 0.25rem;
+  margin-right: 0.25rem;
+  border-radius: 50%;
+  font-weight: 700;
+  font-size: 1.1rem;
+  color: #fff;
+  line-height: 1;
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+ * FILTER TOGGLE BUTTONS — colored toggle pills with count badge
+ *
+ * Usage: <button class="dash-filter-toggle active">TAG <span class="dash-filter-count">5</span></button>
+ * ════════════════════════════════════════════════════════════════════ */
+
+.dash-filter-row {
+  display: flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.4rem;
+}
+
+.dash-filter-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.7rem;
+  border: 1px solid var(--dash-border, var(--theme-foreground-faintest));
+  border-radius: 6px;
+  background: var(--theme-background-alt);
+  color: var(--theme-foreground-muted);
+  font-family: var(--theme-font, system-ui, sans-serif);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  opacity: 0.5;
+}
+
+.dash-filter-toggle:hover {
+  border-color: var(--theme-foreground-faint);
+  opacity: 0.75;
+}
+
+.dash-filter-toggle.active {
+  opacity: 1;
+  color: #fff;
+}
+
+.dash-filter-count {
+  font-weight: 700;
+  font-size: 0.75rem;
+  opacity: 0.8;
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+ * ACTION BUTTONS — small utility buttons (Select all, Clear all, etc.)
+ * ════════════════════════════════════════════════════════════════════ */
+
+.dash-action-row {
+  display: flex;
+  gap: 0.4rem;
+  margin-bottom: 1rem;
+}
+
+.dash-action-btn {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.3rem 0.65rem;
+  border: 1px solid var(--dash-border, var(--theme-foreground-faintest));
+  border-radius: 6px;
+  background: var(--theme-background-alt);
+  color: var(--theme-foreground-muted);
+  font-family: var(--theme-font, system-ui, sans-serif);
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.dash-action-btn:hover {
+  border-color: var(--theme-foreground-faint);
+  color: var(--theme-foreground);
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+ * TAG BADGES — small colored pills for labels
+ * ════════════════════════════════════════════════════════════════════ */
+
+.dash-tag-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.15em 0.6em;
+  border-radius: 999px;
+  font-size: 0.75em;
+  font-weight: 600;
+  color: #fff;
+  line-height: 1.4;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+ * SEGMENT BARS — horizontal stacked bars (severity, aging, language)
+ *
+ * Usage: <div class="dash-segment-bar"><div class="segment" style="width:40%;background:red">4</div>...</div>
+ * Height variants: .dash-segment-bar (24px), .dash-segment-bar.thin (10px, no labels)
+ * ════════════════════════════════════════════════════════════════════ */
+
+.dash-segment-bar {
+  display: flex;
+  width: 100%;
+  height: 24px;
+  border-radius: 6px;
+  overflow: hidden;
+  margin: 0.75rem 0 0.25rem;
+}
+
+.dash-segment-bar .segment {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #fff;
+  min-width: 0;
+  transition: width 0.3s ease;
+}
+
+.dash-segment-bar.thin {
+  height: 10px;
+}
+
+.dash-segment-bar.thin .segment {
+  min-width: 2px;
+  font-size: 0;
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+ * BAR LEGENDS — dot + label rows beneath segment bars
+ *
+ * Usage: <div class="dash-bar-legend"><span><span class="dot" style="background:red"></span>Label</span>...</div>
+ * ════════════════════════════════════════════════════════════════════ */
+
+.dash-bar-legend {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin: 0.4rem 0 0.75rem;
+  font-size: 0.75rem;
+  color: var(--theme-foreground-muted);
+}
+
+.dash-bar-legend .dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 0.3rem;
+  vertical-align: middle;
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+ * BADGES — small colored pills for severity, status, labels
+ *
+ * Usage: <span class="dash-badge" style="--badge-color: #f85149; --badge-bg: rgba(248,81,73,0.15)">critical</span>
+ * Or with border: add class .bordered
+ * ════════════════════════════════════════════════════════════════════ */
+
+.dash-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2em 0.65em;
+  border-radius: 999px;
+  font-size: 0.75em;
+  font-weight: 600;
+  line-height: 1.4;
+  white-space: nowrap;
+  vertical-align: middle;
+  color: var(--badge-color, var(--theme-foreground-muted));
+  background: var(--badge-bg, var(--theme-background-alt));
+  border: 1px solid var(--badge-border, transparent);
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+ * PILL LIST — flex-wrapped row of pill items (ecosystems, stale branches)
+ *
+ * Usage: <div class="dash-pill-list"><span class="dash-badge">npm <span class="dash-pill-count">5</span></span>...</div>
+ * ════════════════════════════════════════════════════════════════════ */
+
+.dash-pill-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0.5rem 0;
+}
+
+.dash-pill-count {
+  font-weight: 700;
+  margin-left: 0.5rem;
+  color: var(--theme-foreground);
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+ * TABLES — full-width data tables
+ *
+ * Usage: <table class="dash-table">...</table>
+ * ════════════════════════════════════════════════════════════════════ */
+
+.dash-table {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  border-collapse: collapse;
+  font-size: 0.8rem;
+  margin: 0.5rem 0;
+}
+
+.dash-table th {
+  text-align: left;
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid var(--dash-border, var(--theme-foreground-fainter));
+  color: var(--theme-foreground-muted);
+  font-weight: 500;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.dash-table td {
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid
+    var(--dash-border-muted, var(--theme-foreground-faintest));
+  color: var(--theme-foreground);
+}
+
+.dash-table tr:last-child td {
+  border-bottom: none;
+}
+
+.dash-table tr:hover td {
+  background: rgba(88, 166, 255, 0.04);
+}
+
+.dash-table .cell-muted {
+  color: var(--theme-foreground-muted);
+  font-size: 0.75rem;
+  max-width: 400px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dash-table a {
+  color: var(--dash-accent-primary, var(--theme-foreground-focus));
+  text-decoration: none;
+}
+
+.dash-table a:hover {
+  text-decoration: underline;
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+ * PROGRESS BARS
+ * ════════════════════════════════════════════════════════════════════ */
+
+.dash-progress-bar {
+  width: 100%;
+  height: 6px;
+  background: var(--theme-foreground-faintest);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-top: 0.4rem;
+}
+
+.dash-progress-bar .fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+ * STATUS DOT
+ * ════════════════════════════════════════════════════════════════════ */
+
+.dash-status-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 0.4rem;
+}

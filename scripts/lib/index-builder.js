@@ -51,7 +51,10 @@ export function buildOverviewSection(overviews) {
         .join("\n");
 
       return `  <a class="overview-module" href="${path}" style="display: block; text-decoration: none; background: ${bg}; border: 1px solid ${border}; border-radius: 10px; padding: 1.25rem;">
-    <div style="color: ${title}; font-size: 1.15rem; font-weight: 700; margin-bottom: 0.75rem;">${name}</div>
+    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem;">
+      <div style="color: ${title}; font-size: 1.15rem; font-weight: 700;">${name}</div>
+      <svg class="overview-nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="${text}" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" style="opacity: 0.2; flex-shrink: 0; transition: opacity 0.15s ease;"><path d="M21 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h6"/><path d="m21 3-9 9"/><path d="M15 3h6v6"/></svg>
+    </div>
     <div style="display: grid; grid-template-columns: repeat(${cols}, 1fr); gap: 0.5rem;">
 ${summaryItems}
     </div>
@@ -62,6 +65,7 @@ ${summaryItems}
   return `<style>
 .overview-module { transition: border-color 0.15s ease, box-shadow 0.15s ease; font-family: 'Inter', sans-serif; }
 .overview-module:hover { box-shadow: 0 2px 12px rgba(255,255,255,0.04); filter: brightness(1.05); }
+.overview-module:hover .overview-nav-icon { opacity: 0.6 !important; }
 </style>
 
 <div class="dash-section" style="--si:1">

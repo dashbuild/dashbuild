@@ -50,6 +50,12 @@
   --sonar-border: rgb(99, 113, 146);
   --sonar-divider: rgba(99, 113, 146, 0.4);
 
+  /* Dashbuild shared component variables */
+  --dash-border: var(--sonar-border);
+  --dash-divider: var(--sonar-divider);
+  --dash-accent-primary: var(--sonar-primary);
+  --dash-accent-secondary: var(--sonar-secondary);
+
   /* Muted chart colors (desaturated for graphs) */
   --sonar-chart-green: #5a9a6e;
   --sonar-chart-yellow: #b8a855;
@@ -80,65 +86,7 @@ body {
   border-bottom: 1px solid var(--sonar-divider);
 }
 
-/* ── Section headings ──────────────────────────────────────────────── */
-
-h2 {
-  border-bottom: 1px solid var(--sonar-divider);
-  padding-bottom: 0.4rem;
-  margin-bottom: 1rem;
-  font-weight: 600;
-  letter-spacing: -0.01em;
-}
-
-/* ── Cards ─────────────────────────────────────────────────────────── */
-
-.card {
-  border: 1px solid var(--sonar-border);
-  border-radius: 0.4rem;
-}
-
-.card h2 {
-  border-bottom: none;
-  padding-bottom: 0;
-  margin-bottom: 0.25rem;
-  font-size: 0.85rem;
-  font-weight: 500;
-  color: var(--theme-foreground-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-
-.card svg {
-  width: 100%;
-}
-
-/* ── Summary cards ─────────────────────────────────────────────────── */
-
-.summary-card {
-  text-align: center;
-  padding: 0.75rem;
-}
-
-.summary-card .big {
-  font-size: 1.6rem;
-}
-
-/* ── Rating badge — white letter inside colored circle ─────────────── */
-
-.sonar-rating {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 2.2rem;
-  height: 2.2rem;
-  margin-top: 0.25rem;
-  margin-right: 0.25rem;
-  border-radius: 50%;
-  font-weight: 700;
-  font-size: 1.1rem;
-  color: #fff;
-  line-height: 1;
-}
+/* ── Skeleton override ─────────────────────────────────────────────── */
 
 .skel-cards-3 {
   min-height: 100px;

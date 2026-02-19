@@ -30,6 +30,12 @@
   --dash-trend-up: #6aab7d;
   --dash-trend-down: #ab6a75;
   --dash-trend-flat: var(--theme-foreground-muted);
+
+  /* Dashbuild shared component variables */
+  --dash-border: var(--theme-foreground-fainter);
+  --dash-divider: var(--theme-foreground-fainter);
+  --dash-accent-primary: var(--__MODULE_NAME__-primary);
+  --dash-accent-secondary: var(--__MODULE_NAME__-primary-dark);
 }
 
 body {
