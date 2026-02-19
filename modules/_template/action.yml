@@ -10,11 +10,6 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - name: Resolve Dashbuild root
-      uses: ./actions/resolve-dashbuild-root
-      with:
-        start-dir: ${{ github.action_path }}
-
     - name: Generate report page
       shell: bash
       run: node "${DASHBUILD_ROOT}/scripts/lib/generate-page.js" "${{ github.action_path }}"

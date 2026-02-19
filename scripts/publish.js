@@ -91,39 +91,26 @@ function rewriteStandaloneActionYml(actionYmlPath, repoName) {
 
 /**
  * Rewrite a module action.yml for the modules repo.
- * - Inlines scripts/lib/resolve-dashbuild-root.sh in place of the
- *   `uses: ./actions/resolve-dashbuild-root` step. Local `./` action paths
- *   resolve relative to the calling workflow's repo, not the action's repo,
- *   so they cannot be used from external repos.
- * - Updates ${DASHBUILD_ROOT}/scripts/lib/ references to _shared/lib/.
+ * Replaces ${DASHBUILD_ROOT}/scripts/lib/ with a path relative to
+ * ${{ github.action_path }}, computed from the module's depth in the
+ * published repo. This avoids any runtime root-resolution entirely.
+ *
+ * e.g. code-tasks/action.yml  (depth 1) → ${{ github.action_path }}/../_shared/lib/
+ *      javascript/code-statistics/action.yml (depth 2) → ${{ github.action_path }}/../../_shared/lib/
  */
-function rewriteModuleActionYml(actionYmlPath) {
+function rewriteModuleActionYml(actionYmlPath, stageDir) {
   let content = readFileSync(actionYmlPath, "utf-8");
 
-  // Read the resolve script from scripts/lib and inline it, passing
-  // github.action_path as $1 (the start directory for the walk-up)
-  const resolveScript = readFileSync(
-    join(ROOT, "scripts/lib/resolve-dashbuild-root.sh"),
-    "utf-8",
-  );
+  // Compute how many levels deep the module is relative to the staged repo root
+  const moduleDir = dirname(actionYmlPath);
+  const relToRoot = relative(stageDir, moduleDir); // e.g. "code-tasks" or "javascript/code-statistics"
+  const depth = relToRoot.split("/").length; // 1 or 2
+  const upToRoot = Array(depth).fill("..").join("/"); // ".." or "../.."
 
-  // Indent each line of the script to sit inside a `run: |` block (6 + 2 = 8 spaces)
-  const indentedScript = resolveScript
-    .trimEnd()
-    .split("\n")
-    .map((line) => `        ${line}`)
-    .join("\n");
-
-  // Replace the `uses: ./actions/resolve-dashbuild-root` step with inlined shell
-  content = content.replace(
-    /( +)- name: Resolve Dashbuild root\n\1  uses: \.\/actions\/resolve-dashbuild-root\n\1  with:\n\1    start-dir: \$\{\{ github\.action_path \}\}\n/,
-    `$1- name: Resolve Dashbuild root\n$1  shell: bash\n$1  run: |\n${indentedScript}\n`,
-  );
-
-  // Update references to use _shared/lib instead of scripts/lib
+  // Replace ${DASHBUILD_ROOT}/scripts/lib/ with a path relative to github.action_path
   content = content.replace(
     /\$\{DASHBUILD_ROOT\}\/scripts\/lib\//g,
-    "${DASHBUILD_ROOT}/_shared/lib/",
+    `\${{ github.action_path }}/${upToRoot}/_shared/lib/`,
   );
 
   writeFileSync(actionYmlPath, content, "utf-8");
@@ -234,7 +221,7 @@ function stageModules() {
       if (existsSync(join(fullPath, "module.json"))) {
         // This is a module — copy it and rewrite its action.yml
         cpSync(fullPath, targetPath, { recursive: true });
-        rewriteModuleActionYml(join(targetPath, "action.yml"));
+        rewriteModuleActionYml(join(targetPath, "action.yml"), stageDir);
       } else {
         // This is a grouping directory (e.g. javascript/) — recurse
         mkdirSync(targetPath, { recursive: true });

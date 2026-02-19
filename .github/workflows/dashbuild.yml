@@ -30,6 +30,9 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Set Dashbuild root
+        run: echo "DASHBUILD_ROOT=$GITHUB_WORKSPACE" >> "$GITHUB_ENV"
+
       - name: Setup Dashbuild
         uses: ./setup
         with:
